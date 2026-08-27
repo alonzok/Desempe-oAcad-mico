@@ -18,6 +18,12 @@ module.exports = {
                     label: 'Pipeline para obtener datos de desempeño académico',
                     type: 'text',
                     required: true
+                },
+                {
+                    key: 'AdeudosPipeline',
+                    label: 'Pipeline para obtener los adeudos del estudiante',
+                    type: 'text',
+                    required: true
                 }
             ],
             server: [
