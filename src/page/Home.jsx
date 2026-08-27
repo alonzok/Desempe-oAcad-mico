@@ -119,7 +119,9 @@ const HomePage = () => {
                 <StudentCard
                     datos={data}
                 />
-                <PerformanceCard />
+                <PerformanceCard 
+                    datos={data}
+                />
                 <ActionsCard />
             </div>
 

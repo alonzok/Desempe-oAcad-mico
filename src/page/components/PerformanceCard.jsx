@@ -99,8 +99,17 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-const PerformanceCard = () => {
+const PerformanceCard = ({ datos }) => {
     const { classes } = useStyles();
+
+    const cursosKey = Object.keys(datos.resultado)
+    let sumaCalificacion = 0;
+    let promedio = 0;
+    cursosKey.forEach((cursoKey) => {
+        sumaCalificacion += Number(datos.resultado[cursoKey].Calificacion)
+    })
+    promedio = sumaCalificacion / cursosKey.length
+
 
     return (
         <div className={classes.performanceCard}>
@@ -111,7 +120,7 @@ const PerformanceCard = () => {
             <div className={classes.performanceTitle}>Vas por buen camino</div>
             <div className={classes.performanceStats}>
                 <div className={classes.mainStat}>
-                    <span className={classes.bigNumber}>91</span>
+                    <span className={classes.bigNumber}>{promedio}</span>
                     <span className={classes.bigNumberSuffix}>/100</span>
                     <div className={classes.statLabel}>Promedio</div>
                 </div>
