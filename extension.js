@@ -4,12 +4,30 @@ module.exports = {
     cards: [{
         type: 'DesemAcademicoCard',
         source: './src/cards/DesemAcademicoCard',
-        title: 'DesemAcademico Card',
+        title: 'Desempeño Académico',
         displayCardType: 'DesemAcademico Card',
         description: 'Tarjeta para Desempeño Académico',
         pageRoute: {
             route: '/',
             excludeClickSelectors: ['a']
+        },
+        configuration: {
+            client: [
+                {
+                    key: 'DesemAcadPipeline',
+                    label: 'Pipeline para obtener datos de desempeño académico',
+                    type: 'text',
+                    required: true
+                }
+            ],
+            server: [
+                {
+                    key: 'ethosApiKey',
+                    label: 'Ethos API Key',
+                    type: 'password',
+                    required: true
+                }
+            ]
         }
     }],
     page: {

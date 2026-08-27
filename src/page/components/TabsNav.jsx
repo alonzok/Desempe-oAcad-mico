@@ -12,10 +12,29 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-const tabs = ['Resumen', 'Credencial', 'Desempeño', 'Historia académica', 'Servicios'];
+const tabs = ['Resumen', 'Credencial', 'Historia académica', 'Servicios'];
 
-const TabsNav = ({ tabActiva, setTabActiva }) => {
+function periodoLegible(cod) {
+    const s = String(cod || '');
+    const m = s.match(/^(\d{4})(\d{2})$/);
+    if (!m) return s;
+    const ciclo = {
+        '10': '1',
+        '15': '4',
+        '20': '2',
+        '25': '5',
+        '30': '3',
+        '41': '6',
+        '42': '7',
+        '43': '8'
+    }[m[2]] || String(parseInt(m[2], 10));
+    return `${m[1]}-${ciclo}`;
+}
+
+const TabsNav = ({ tabActiva, setTabActiva, datos }) => {
     const { classes } = useStyles();
+    const cursosKey = Object.keys(datos.resultado)
+    const periodo = periodoLegible(datos.resultado[cursosKey[0]].Periodo)
 
     return (
         <div className={classes.tabsContainer}>
@@ -47,7 +66,7 @@ const TabsNav = ({ tabActiva, setTabActiva }) => {
                         </span>
                     ))}
                 </div>
-                <span className={classes.periodoLabel}>Periodo 2026-2</span>
+                <span className={classes.periodoLabel}>Periodo {periodo}</span>
             </div>
         </div>
     );

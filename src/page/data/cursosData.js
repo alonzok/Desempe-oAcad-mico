@@ -1,3 +1,5 @@
+/* global URLSearchParams */
+
 export const cursosData = [
     {
         id: 'AFD-101',
@@ -84,3 +86,44 @@ export const accionesPrioritarias = [
         subtitulo: 'Fecha límite de colegiatura',
     },
 ];
+
+/**
+ * Transforma la respuesta cruda del pipeline en { estudiante, programas }.
+ */
+export function parseRespuestaPipeline(respuesta) {
+    if (Array.isArray(respuesta))
+        return respuesta[0]
+    return respuesta
+}
+
+export async function fetchDesempAcadPipeline({ authenticatedEthosFetch, pipeline, cardId }) {
+    // export async function fetchHistorialPipeline({ authenticatedEthosFetch, bannerId, pipeline, cardId }) {
+    const cardIdParameter = new URLSearchParams({ cardId }).toString();
+    const resourcePath = `${pipeline}?${cardIdParameter}`;
+    const response = await authenticatedEthosFetch(resourcePath, {
+        method: 'GET',
+        headers: { 'Content-type': 'application/json', 'Accept': 'application/json' }
+    });
+    if (response && response.status === 200) {
+        const text = await response.text();
+        if (!text.trim()) {
+            console.log("Empty response");
+            return;
+        } else {
+            const json = await JSON.parse(text)
+            // eslint-disable-next-line no-console
+            console.log('[Historial] Respuesta del pipeline:', json);
+            return json;
+        }
+    }
+
+    throw new Error('La matrícula no existe.');
+}
+
+export async function fetchDesempAcad({ authenticatedEthosFetch, pipeline, cardId } = {}) {
+    if (!authenticatedEthosFetch || !pipeline) {
+        throw new Error('No se configuró el pipeline para el Desempeño Académico o falta el acceso a Ethos.');
+    }
+    const respuesta = await fetchDesempAcadPipeline({ authenticatedEthosFetch, pipeline, cardId });
+    return parseRespuestaPipeline(respuesta);
+}

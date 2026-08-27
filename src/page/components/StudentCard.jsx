@@ -115,7 +115,8 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-const StudentCard = () => {
+const StudentCard = ({datos}) => {
+    console.log(datos.Nombre)
     const { classes } = useStyles();
     return (
         <div className={classes.studentCard}>
@@ -126,7 +127,7 @@ const StudentCard = () => {
                 </div>
                 <div>
                     <div className={classes.studentLabel}>ESTUDIANTE</div>
-                    <div className={classes.studentName}>Mariana García López</div>
+                    <div className={classes.studentName}>{datos.Nombre}</div>
                     <div className={classes.studentCareer}>Lic. en Actividad Física y Deporte</div>
                     <div className={classes.studentFaculty}>Facultad de Deportes</div>
                 </div>
@@ -134,7 +135,7 @@ const StudentCard = () => {
             <div className={classes.studentMeta}>
                 <div className={classes.metaItem}>
                     <div className={classes.metaLabel}>MATRÍCULA</div>
-                    <div className={classes.metaValue}>01234567</div>
+                    <div className={classes.metaValue}>{datos.Matricula}</div>
                 </div>
                 <div className={classes.metaItem}>
                     <div className={classes.metaLabel}>CAMPUS</div>

@@ -1,5 +1,5 @@
 import { makeStyles } from '@ellucian/react-design-system/core';
-import { cursosData } from '../data/cursosData';
+// import { cursosData } from '../data/cursosData';
 
 const useStyles = makeStyles()(() => ({
     academicSection: {
@@ -184,9 +184,13 @@ const useStyles = makeStyles()(() => ({
         padding: '3px 10px',
         borderRadius: '12px',
     },
-    statusEnCurso: {
+    statusDestacado: {
         backgroundColor: '#e8f5e9',
         color: '#2e7d32',
+    },
+    statusEsperado: {
+        backgroundColor: '#e3f2fd',
+        color: '#1565c0',
     },
     statusAtencion: {
         backgroundColor: '#fff3e0',
@@ -201,14 +205,61 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-const AcademicSection = ({ periodoSeleccionado, setPeriodoSeleccionado }) => {
-    const { classes } = useStyles();
+function periodoLegible(cod) {
+    const s = String(cod || '');
+    const m = s.match(/^(\d{4})(\d{2})$/);
+    if (!m) return s;
+    const ciclo = {
+        '10': '1',
+        '15': '4',
+        '20': '2',
+        '25': '5',
+        '30': '3',
+        '41': '6',
+        '42': '7',
+        '43': '8'
+    }[m[2]] || String(parseInt(m[2], 10));
+    return `${m[1]}-${ciclo}`;
+}
 
+const AcademicSection = ({ datos }) => {
+    const { classes } = useStyles();
+    const cursosKey = Object.keys(datos.resultado)
+    const periodo = periodoLegible(datos.resultado[cursosKey[0]].Periodo)
+    let sumaCalificacion = 0;
+    let promedio = 0;
+    let asistenciaTotales = 0;
+    let faltasTotales = 0;
+    let cursos = [];
+    cursosKey.forEach((cursoKey) => {
+        sumaCalificacion += Number(datos.resultado[cursoKey].Calificacion)
+        asistenciaTotales += Number(datos.resultado[cursoKey].Asistencias)
+        faltasTotales += Number(datos.resultado[cursoKey].Inasistencias)
+        datos.resultado[cursoKey].id = cursoKey
+        cursos.push(datos.resultado[cursoKey])
+    })
+    promedio = sumaCalificacion / cursosKey.length
+    let clasesTotales = asistenciaTotales + faltasTotales
+
+    function getEstado(curso) {
+        const calificacion = Number(curso.Calificacion);
+        const asistencias = curso.Asistencias;
+        const faltas = curso.Inasistencias;
+        const porcentajeAsistencia = parseFloat(asistencias / (asistencias + faltas) * 100).toFixed(2);
+        if (calificacion >= 80 && porcentajeAsistencia >= 80) {
+            return { label: 'Destacado', className: classes.statusDestacado };
+        }
+        if (calificacion >= 60 && calificacion < 80 && porcentajeAsistencia >= 80) {
+            return { label: 'Esperado', className: classes.statusEsperado };
+        }
+        return { label: 'Atención', className: classes.statusAtencion };
+    }
     const getProgressColor = (porcentaje) => {
         if (porcentaje >= 75) return classes.progressGreen;
         if (porcentaje >= 50) return classes.progressOrange;
         return classes.progressRed;
     };
+
 
     return (
         <div className={classes.academicSection}>
@@ -220,24 +271,9 @@ const AcademicSection = ({ periodoSeleccionado, setPeriodoSeleccionado }) => {
                 </div>
                 <div className={classes.periodSelector}>
                     <div className={classes.periodLabel}>Periodo académico</div>
-                    <select
-                        value={periodoSeleccionado}
-                        onChange={(e) => setPeriodoSeleccionado(e.target.value)}
-                        style={{
-                            padding: '8px 32px 8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid #ccc',
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            color: '#333',
-                            backgroundColor: '#fff',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <option value="2026-2">2026-2</option>
-                        <option value="2026-1">2026-1</option>
-                        <option value="2025-2">2025-2</option>
-                    </select>
+                    <div>
+                        {periodo}
+                    </div>
                 </div>
             </div>
 
@@ -246,18 +282,18 @@ const AcademicSection = ({ periodoSeleccionado, setPeriodoSeleccionado }) => {
                 <div className={classes.summaryCard}>
                     <div className={classes.summaryLabel}>Promedio del periodo</div>
                     <div className={classes.summarySublabel}>Calificación parcial</div>
-                    <div className={classes.summaryValue}>91</div>
+                    <div className={classes.summaryValue}>{promedio}</div>
                 </div>
                 <div className={classes.summaryCard}>
                     <div className={classes.summaryLabel}>Cursos inscritos</div>
-                    <div className={classes.summarySublabel}>Periodo seleccionado</div>
-                    <div className={classes.summaryValue}>7</div>
+                    <div className={classes.summarySublabel}></div>
+                    <div className={classes.summaryValue}>{cursosKey.length}</div>
                 </div>
                 <div className={classes.summaryCard}>
                     <div className={classes.summaryLabel}>Asistencia acumulada</div>
-                    <div className={classes.summarySmall}>97 de 144 registros</div>
+                    <div className={classes.summarySmall}>{asistenciaTotales} de {clasesTotales} registros</div>
                     <div className={classes.summaryPercent}>
-                        67<span className={classes.summaryPercentSymbol}>%</span>
+                        {parseFloat((asistenciaTotales / clasesTotales) * 100).toFixed(2)}<span className={classes.summaryPercentSymbol}>%</span>
                     </div>
                 </div>
             </div>
@@ -274,17 +310,18 @@ const AcademicSection = ({ periodoSeleccionado, setPeriodoSeleccionado }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {cursosData.map((curso) => (
+                        {cursos.map((curso) => (
+
                             <tr key={curso.id} className={classes.tableRow}>
                                 <td className={classes.courseCell}>
                                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                                         <span
                                             className={classes.courseIndicator}
-                                            style={{ backgroundColor: curso.color, marginTop: '6px' }}
+                                            style={{ backgroundColor: "#e65100", marginTop: '6px' }}
                                         />
                                         <div>
                                             <span className={classes.courseCode}>{curso.id}</span>
-                                            <div className={classes.courseName}>{curso.nombre}</div>
+                                            <div className={classes.courseName}>{curso.Curso}</div>
                                             <div className={classes.courseSchedule}>
                                                 📅 {curso.horario}
                                             </div>
@@ -292,31 +329,31 @@ const AcademicSection = ({ periodoSeleccionado, setPeriodoSeleccionado }) => {
                                     </div>
                                 </td>
                                 <td className={classes.courseCell} style={{ textAlign: 'center' }}>
-                                    <span className={classes.gradeValue}>{curso.calificacion}</span>
+                                    <span className={classes.gradeValue}>{Number(curso.Calificacion)}</span>
                                     <span className={classes.gradeSuffix}>/100</span>
                                 </td>
                                 <td className={classes.courseCell}>
                                     <div className={classes.attendanceContainer}>
                                         <div>
                                             <span className={classes.attendanceText}>
-                                                {curso.asistencia.asistidas}/{curso.asistencia.total}
+                                                {curso.Asistencias}/{curso.Asistencias + curso.Inasistencias}
                                             </span>
                                             <span className={classes.attendancePercent} style={{ marginLeft: '8px' }}>
-                                                {curso.asistencia.porcentaje}%
+                                                {parseFloat((curso.Asistencias / (curso.Asistencias + curso.Inasistencias)) * 100).toFixed(2)}%
                                             </span>
                                         </div>
                                         <div className={classes.progressBar}>
                                             <div
-                                                className={`${classes.progressFill} ${getProgressColor(curso.asistencia.porcentaje)}`}
-                                                style={{ width: `${curso.asistencia.porcentaje}%` }}
+                                                className={`${classes.progressFill} ${getProgressColor(parseFloat((curso.Asistencias / curso.Asistencias + curso.Inasistencias) * 100).toFixed(2))}`}
+                                                style={{ width: `${parseFloat((curso.Asistencias / (curso.Asistencias + curso.Inasistencias)) * 100).toFixed(2)}%` }}
                                             />
                                         </div>
                                         <div className={classes.attendanceLabel}>asistencia</div>
                                     </div>
                                 </td>
                                 <td className={classes.courseCell} style={{ textAlign: 'center' }}>
-                                    <span className={`${classes.statusBadge} ${curso.estado === 'En curso' ? classes.statusEnCurso : classes.statusAtencion}`}>
-                                        {curso.estado}
+                                    <span className={`${classes.statusBadge} ${getEstado(curso).className}`}>
+                                        {getEstado(curso).label}
                                     </span>
                                 </td>
                             </tr>

@@ -53,7 +53,7 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-const Header = () => {
+const Header = ({datos}) => {
     const { classes } = useStyles();
 
     return (
@@ -65,14 +65,14 @@ const Header = () => {
                 <div>
                     <div className={classes.universityName}>Universidad Autónoma de Baja California</div>
                     <Typography variant="h3" className={classes.headerTitle}>
-                        Hola, Mariana
+                        Hola, {datos.Nombre.split(" ")[(datos.Nombre.split(" ")).length-1]}
                     </Typography>
                     <div className={classes.headerSubtitle}>Tu vida universitaria, clara y en un solo lugar.</div>
                 </div>
             </div>
             <div className={classes.headerRight}>
                 <div className={classes.userBadge}>
-                    <span style={{ fontSize: '14px', color: '#fff' }}>Mariana García</span>
+                    <span style={{ fontSize: '14px', color: '#fff' }}>{datos.Nombre}</span>
                     <div style={{
                         width: '32px',
                         height: '32px',
