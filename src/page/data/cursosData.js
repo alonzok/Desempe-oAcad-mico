@@ -66,26 +66,26 @@ export const cursosData = [
     },
 ];
 
-export const accionesPrioritarias = [
-    {
-        dia: '21',
-        mes: 'AGO',
-        titulo: 'Entrega pendiente',
-        subtitulo: 'Fundamentos de Comunicación',
-    },
-    {
-        dia: '22',
-        mes: 'AGO',
-        titulo: 'Asesoría académica',
-        subtitulo: 'Edificio 11B · 10:00 h',
-    },
-    {
-        dia: '24',
-        mes: 'AGO',
-        titulo: 'Pago próximo',
-        subtitulo: 'Fecha límite de colegiatura',
-    },
-];
+// export const accionesPrioritarias = [
+//     {
+//         dia: '1',
+//         mes: 'SEPT',
+//         titulo: 'Entrega pendiente Biblioteca',
+//         subtitulo: 'Fundamentos de Comunicación',
+//     },
+//     {
+//         dia: '22',
+//         mes: 'AGO',
+//         titulo: 'Asesoría académica',
+//         subtitulo: 'Edificio 11B · 10:00 h',
+//     },
+//     {
+//         dia: '24',
+//         mes: 'AGO',
+//         titulo: 'Pago próximo',
+//         subtitulo: 'Fecha límite de colegiatura',
+//     },
+// ];
 
 /**
  * Transforma la respuesta cruda del pipeline en { estudiante, programas }.
@@ -96,7 +96,32 @@ export function parseRespuestaPipeline(respuesta) {
     return respuesta
 }
 
+
 export async function fetchDesempAcadPipeline({ authenticatedEthosFetch, pipeline, cardId }) {
+    // export async function fetchHistorialPipeline({ authenticatedEthosFetch, bannerId, pipeline, cardId }) {
+    const cardIdParameter = new URLSearchParams({ cardId }).toString();
+    const resourcePath = `${pipeline}?${cardIdParameter}`;
+    const response = await authenticatedEthosFetch(resourcePath, {
+        method: 'GET',
+        headers: { 'Content-type': 'application/json', 'Accept': 'application/json' }
+    });
+    if (response && response.status === 200) {
+        const text = await response.text();
+        if (!text.trim()) {
+            console.log("Empty response");
+            return;
+        } else {
+            const json = await JSON.parse(text)
+            // eslint-disable-next-line no-console
+            console.log('[Historial] Respuesta del pipeline:', json);
+            return json;
+        }
+    }
+
+    throw new Error('La matrícula no existe.');
+}
+
+export async function fetchAdeudosPipeline({ authenticatedEthosFetch, pipeline, cardId }) {
     // export async function fetchHistorialPipeline({ authenticatedEthosFetch, bannerId, pipeline, cardId }) {
     const cardIdParameter = new URLSearchParams({ cardId }).toString();
     const resourcePath = `${pipeline}?${cardIdParameter}`;
@@ -126,4 +151,12 @@ export async function fetchDesempAcad({ authenticatedEthosFetch, pipeline, cardI
     }
     const respuesta = await fetchDesempAcadPipeline({ authenticatedEthosFetch, pipeline, cardId });
     return parseRespuestaPipeline(respuesta);
+}
+
+export async function fetchAdeudos({ authenticatedEthosFetch, pipeline, cardId } = {}) {
+    if (!authenticatedEthosFetch || !pipeline) {
+        throw new Error('No se configuró el pipeline para los Adeudos o falta el acceso a Ethos.');
+    }
+    const respuesta = await fetchAdeudosPipeline({ authenticatedEthosFetch, pipeline, cardId });
+    return respuesta;
 }
