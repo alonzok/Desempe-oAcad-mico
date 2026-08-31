@@ -1,5 +1,6 @@
 import { makeStyles } from '@ellucian/react-design-system/core';
 // import { cursosData } from '../data/cursosData';
+import iconoBlackboard from '../assets/blackboard.png';
 
 const useStyles = makeStyles()(() => ({
     academicSection: {
@@ -205,27 +206,9 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-function periodoLegible(cod) {
-    const s = String(cod || '');
-    const m = s.match(/^(\d{4})(\d{2})$/);
-    if (!m) return s;
-    const ciclo = {
-        '10': '1',
-        '15': '4',
-        '20': '2',
-        '25': '5',
-        '30': '3',
-        '41': '6',
-        '42': '7',
-        '43': '8'
-    }[m[2]] || String(parseInt(m[2], 10));
-    return `${m[1]}-${ciclo}`;
-}
-
 const AcademicSection = ({ datos }) => {
     const { classes } = useStyles();
     const cursosKey = Object.keys(datos.resultado)
-    const periodo = periodoLegible(datos.resultado[cursosKey[0]].Periodo)
     let sumaCalificacion = 0;
     let promedio = 0;
     let asistenciaTotales = 0;
@@ -269,25 +252,19 @@ const AcademicSection = ({ datos }) => {
                     <div className={classes.sectionTitle}>Calificaciones y asistencia por curso</div>
                     <div className={classes.sectionSubtitle}>Resultados parciales registrados a la fecha.</div>
                 </div>
-                <div className={classes.periodSelector}>
-                    <div className={classes.periodLabel}>Periodo académico</div>
-                    <div>
-                        {periodo}
-                    </div>
-                </div>
             </div>
 
             {/* Summary cards */}
             <div className={classes.summaryCards}>
                 <div className={classes.summaryCard}>
-                    <div className={classes.summaryLabel}>Promedio del periodo</div>
-                    <div className={classes.summarySublabel}>Calificación parcial</div>
-                    <div className={classes.summaryValue}>{promedio}</div>
-                </div>
-                <div className={classes.summaryCard}>
                     <div className={classes.summaryLabel}>Cursos inscritos</div>
                     <div className={classes.summarySublabel}></div>
                     <div className={classes.summaryValue}>{cursosKey.length}</div>
+                </div>
+                <div className={classes.summaryCard}>
+                    <div className={classes.summaryLabel}>Promedio del periodo</div>
+                    <div className={classes.summarySublabel}>Calificación parcial</div>
+                    <div className={classes.summaryValue}>{promedio}</div>
                 </div>
                 <div className={classes.summaryCard}>
                     <div className={classes.summaryLabel}>Asistencia acumulada</div>
@@ -303,7 +280,8 @@ const AcademicSection = ({ datos }) => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr className={classes.tableHeader}>
-                            <th className={classes.tableHeaderCell} style={{ textAlign: 'left' }}>CURSO Y HORARIO</th>
+                            <th className={classes.tableHeaderCell} style={{ textAlign: 'left' }}>CURSO</th>
+                            <th className={classes.tableHeaderCell}>CRÉDITOS</th>
                             <th className={classes.tableHeaderCell}>CALIFICACIÓN</th>
                             <th className={classes.tableHeaderCell}>ASISTENCIA</th>
                             <th className={classes.tableHeaderCell}>ESTADO</th>
@@ -311,22 +289,31 @@ const AcademicSection = ({ datos }) => {
                     </thead>
                     <tbody>
                         {cursos.map((curso) => (
-
                             <tr key={curso.id} className={classes.tableRow}>
                                 <td className={classes.courseCell}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                                        <span
-                                            className={classes.courseIndicator}
-                                            style={{ backgroundColor: "#e65100", marginTop: '6px' }}
-                                        />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        {curso.id == 36302 ?
+                                            <img
+                                                src={iconoBlackboard}
+                                                alt="Icono Blackboard"
+                                                title="Cursos en BlackBoard"
+                                                style={{ width: '24px', height: '24px', borderRadius: '4px' }}
+                                            />
+                                            :
+                                            <span
+                                                className={classes.courseIndicator}
+                                                style={{ backgroundColor: "#e65100" }}
+                                            />
+                                        }
+
                                         <div>
                                             <span className={classes.courseCode}>{curso.id}</span>
                                             <div className={classes.courseName}>{curso.Curso}</div>
-                                            <div className={classes.courseSchedule}>
-                                                📅 {curso.horario}
-                                            </div>
                                         </div>
                                     </div>
+                                </td>
+                                <td className={classes.courseCell} style={{ textAlign: 'center' }}>
+                                    <span className={classes.gradeValue}>{Number(curso.Creditos)}</span>
                                 </td>
                                 <td className={classes.courseCell} style={{ textAlign: 'center' }}>
                                     <span className={classes.gradeValue}>{Number(curso.Calificacion)}</span>
