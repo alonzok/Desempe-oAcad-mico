@@ -15,7 +15,7 @@ import PerformanceCard from './components/PerformanceCard';
 import ActionsCard from './components/ActionsCard';
 import AcademicSection from './components/AcademicSection';
 
-import { fetchDesempAcad } from './data/cursosData';
+import { fetchDesempAcad, fetchAdeudos } from './data/cursosData';
 
 const useStyles = makeStyles()((theme) => ({
     root: {
@@ -39,6 +39,7 @@ const HomePage = () => {
     const { cardConfiguration, cardId } = useCardInfo();
     const [tabActiva, setTabActiva] = useState(0);
     const [data, setData] = useState(null);
+    const [adeudos, setAdeudos] = useState(null);
     const [error, setError] = useState(null);
 
     setPageTitle('Desempeño Académico');
@@ -48,7 +49,7 @@ const HomePage = () => {
         setError(null);
         let cancelado = false;
         const cargarHistorial = async () => {
-            const [desemAcad] = await Promise.allSettled([
+            const [desemAcad, adeudosPipeline] = await Promise.allSettled([
                 fetchDesempAcad({
                     authenticatedEthosFetch,
                     pipeline: cardConfiguration?.DesemAcadPipeline,
@@ -59,20 +60,28 @@ const HomePage = () => {
                     }
                     return null;
                 }),
+                fetchAdeudos({
+                    authenticatedEthosFetch,
+                    pipeline: cardConfiguration?.AdeudosPipeline,
+                    cardId,
+                }).catch((e) => {
+                    console.log(e)
+                    if (!cancelado) {
+                        setError(e?.message || 'No se pudo cargar adeudos');
+                    }
+                    return null;
+                })
             ]);
             if (cancelado) return;
-            let datos;
 
             if (desemAcad.status === 'fulfilled') {
-                datos = desemAcad.value;
+                console.log(desemAcad.value)
+                setData(desemAcad.value);
             }
-
-            if (!datos) {
-                setError('La matrícula no existe.')
-            } else {
-                setData(datos)
+            if (adeudosPipeline.status === 'fulfilled') {
+                console.log(adeudosPipeline.value)
+                setAdeudos(adeudosPipeline.value)
             }
-
         };
 
         cargarHistorial();
@@ -107,22 +116,22 @@ const HomePage = () => {
     return (
         <div className={classes.root}>
             <Header
-                datos={data}
+                datos={data.DatosEstudiante[0]}
             />
-            <TabsNav 
-                tabActiva={tabActiva} 
+            <TabsNav
+                tabActiva={tabActiva}
                 setTabActiva={setTabActiva}
                 datos={data}
             />
 
             <div className={classes.mainGrid}>
                 <StudentCard
+                    datos={data.DatosEstudiante[0]}
+                />
+                <PerformanceCard
                     datos={data}
                 />
-                <PerformanceCard 
-                    datos={data}
-                />
-                <ActionsCard />
+                <ActionsCard datos={adeudos}/>
             </div>
 
             <AcademicSection

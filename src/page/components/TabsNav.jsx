@@ -12,7 +12,7 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-const tabs = ['Resumen', 'Credencial', 'Historia académica', 'Servicios'];
+// const tabs = ['Resumen', 'Credencial', 'Historia académica', 'Servicios'];
 
 function periodoLegible(cod) {
     const s = String(cod || '');
@@ -31,15 +31,14 @@ function periodoLegible(cod) {
     return `${m[1]}-${ciclo}`;
 }
 
-const TabsNav = ({ tabActiva, setTabActiva, datos }) => {
+const TabsNav = ({ datos }) => {
     const { classes } = useStyles();
-    const cursosKey = Object.keys(datos.resultado)
-    const periodo = periodoLegible(datos.resultado[cursosKey[0]].Periodo)
+    const periodo = periodoLegible(datos.DatosEstudiante.Periodo)
 
     return (
         <div className={classes.tabsContainer}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '24px' }} role="tablist">
+                {/* <div style={{ display: 'flex', gap: '24px' }} role="tablist">
                     {tabs.map((tab, i) => (
                         <span
                             key={tab}
@@ -65,8 +64,13 @@ const TabsNav = ({ tabActiva, setTabActiva, datos }) => {
                             {tab}
                         </span>
                     ))}
+                </div> */}
+                <div>
+
                 </div>
-                <span className={classes.periodoLabel}>Periodo {periodo}</span>
+                <div>
+                    <span className={classes.periodoLabel}>Periodo Académico {periodo}</span>
+                </div>
             </div>
         </div>
     );

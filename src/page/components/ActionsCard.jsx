@@ -1,5 +1,5 @@
 import { makeStyles } from '@ellucian/react-design-system/core';
-import { accionesPrioritarias } from '../data/cursosData';
+// import { accionesPrioritarias } from '../data/cursosData';
 
 const useStyles = makeStyles()(() => ({
     actionsCard: {
@@ -21,6 +21,9 @@ const useStyles = makeStyles()(() => ({
         textTransform: 'uppercase',
         fontWeight: 600,
         letterSpacing: '0.5px',
+    },
+    debtLabel:{
+        color: '#ff0000'
     },
     actionsTitle: {
         fontSize: '16px',
@@ -78,8 +81,60 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-const ActionsCard = () => {
+function getDia(fecha) {
+    let fechaAcortado = String(fecha).split("T")[0];
+    return fechaAcortado.split("-")[2]
+}
+
+function getMes(fecha) {
+    let fechaAcortado = String(fecha).split("T")[0];
+    let mes = fechaAcortado.split("-")[1];
+    let mesString = "";
+    switch (mes) {
+        case "01":
+            mesString = "ENE";
+            break;
+        case "02":
+            mesString = "FEB";
+            break;
+        case "03":
+            mesString = "MAR";
+            break;
+        case "04":
+            mesString = "ABR";
+            break;
+        case "05":
+            mesString = "MAY";
+            break;
+        case "06":
+            mesString = "JUN";
+            break;
+        case "07":
+            mesString = "JUL";
+            break;
+        case "08":
+            mesString = "AGO";
+            break;
+        case "09":
+            mesString = "SEPT";
+            break;
+        case "10":
+            mesString = "OCT";
+            break;
+        case "11":
+            mesString = "NOV";
+            break;
+        default:
+            mesString = "DIC"
+            break;
+    }
+
+    return mesString;
+}
+
+const ActionsCard = ({ datos }) => {
     const { classes } = useStyles();
+    console.log(datos)
 
     return (
         <div className={classes.actionsCard}>
@@ -88,19 +143,21 @@ const ActionsCard = () => {
                     <div className={classes.actionsLabel}>LO SIGUIENTE PARA TI</div>
                     <div className={classes.actionsTitle}>Acciones prioritarias</div>
                 </div>
-                <div className={classes.actionsBadge}>{accionesPrioritarias.length}</div>
+                <div className={classes.actionsBadge}>{datos.length}</div>
             </div>
-            {accionesPrioritarias.map((accion, idx) => (
+            {datos.map((accion, idx) => (
                 <div key={idx} className={classes.actionItem}>
                     <div className={classes.actionDate}>
-                        <div className={classes.actionDay}>{accion.dia}</div>
-                        <div className={classes.actionMonth}>{accion.mes}</div>
+                        <div className={classes.actionDay}>{getDia(accion.FechaInicioAdeudo)}</div>
+                        <div className={classes.actionMonth}>{getMes(accion.FechaInicioAdeudo)}</div>
                     </div>
                     <div className={classes.actionContent}>
-                        <div className={classes.actionTitle}>{accion.titulo}</div>
-                        <div className={classes.actionSubtitle}>{accion.subtitulo}</div>
+                        <div className={classes.actionTitle}>{accion.TipoAdeudo}</div>
+                        <div className={classes.actionSubtitle}>{accion.RazonAdeudo}</div>
                     </div>
-                    <span className={classes.actionArrow}>›</span>
+                    <div className={classes.debtLabel}>
+                        {accion.Monto == '0' ? "" : `$${accion.Monto} pesos`}
+                    </div>
                 </div>
             ))}
         </div>

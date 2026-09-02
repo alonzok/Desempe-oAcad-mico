@@ -22,6 +22,12 @@ const useStyles = makeStyles()(() => ({
         height: '80px',
         borderRadius: '50%',
         border: '3px solid #1b5e20',
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        fontWeight: 600, 
+        fontSize: 20, 
+        margin: '0 auto 10px'
     },
     activeChip: {
         backgroundColor: '#e8f5e9',
@@ -115,21 +121,22 @@ const useStyles = makeStyles()(() => ({
     },
 }));
 
-const StudentCard = ({datos}) => {
-    console.log(datos.Nombre)
+const StudentCard = ({ datos }) => {
     const { classes } = useStyles();
     return (
         <div className={classes.studentCard}>
             <div className={classes.studentInfo}>
                 <div className={classes.avatarContainer}>
-                    <div className={classes.avatar} style={{ backgroundColor: '#ddd' }} />
+                    <div className={classes.avatar}>
+                        {Array.from(datos.Nombre.split(" ")[(datos.Nombre.split(" ")).length-1])[0]}
+                    </div>
                     <div className={classes.activeChip}>ACTIVA</div>
                 </div>
                 <div>
                     <div className={classes.studentLabel}>ESTUDIANTE</div>
                     <div className={classes.studentName}>{datos.Nombre}</div>
-                    <div className={classes.studentCareer}>Lic. en Actividad Física y Deporte</div>
-                    <div className={classes.studentFaculty}>Facultad de Deportes</div>
+                    <div className={classes.studentCareer}>{datos.programas[0]['Nombre programa']}</div>
+                    <div className={classes.studentFaculty}>{datos.programas[0].Facultad}</div>
                 </div>
             </div>
             <div className={classes.studentMeta}>
@@ -139,21 +146,28 @@ const StudentCard = ({datos}) => {
                 </div>
                 <div className={classes.metaItem}>
                     <div className={classes.metaLabel}>CAMPUS</div>
-                    <div className={classes.metaValue}>Tijuana</div>
+                    <div className={classes.metaValue}>{datos.programas[0].Campus}</div>
                 </div>
                 <div className={classes.metaItem}>
                     <div className={classes.metaLabel}>SEMESTRE</div>
-                    <div className={classes.metaValue}>1°</div>
+                    <div className={classes.metaValue}>6°</div>
                 </div>
             </div>
-            <div className={classes.credentialLink}>
-                <div className={classes.credentialIcon} />
-                <div className={classes.credentialText}>
-                    <div className={classes.credentialTitle}>Ver credencial digital</div>
-                    <div className={classes.credentialSubtitle}>Acceso seguro con código QR</div>
+            <a
+                href="https://experience-test.elluciancloud.com/uabcsaastest/page/001G000000oSiUpIAK/CGIB/CredencialDigital/CredencialDigitalCard/Home"
+                target='_blank'
+                rel="noreferrer"
+                className={classes.credentialTitle}
+            >
+                <div className={classes.credentialLink}>
+                    <div className={classes.credentialIcon} />
+                    <div className={classes.credentialText}>
+                        <div className={classes.credentialTitle}>Ver credencial digital</div>
+                        <div className={classes.credentialSubtitle}>Acceso seguro con código QR</div>
+                    </div>
+                    <span className={classes.actionArrow}>›</span>
                 </div>
-                <span className={classes.actionArrow}>›</span>
-            </div>
+            </a>
         </div>
     );
 };

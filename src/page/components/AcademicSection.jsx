@@ -208,20 +208,20 @@ const useStyles = makeStyles()(() => ({
 
 const AcademicSection = ({ datos }) => {
     const { classes } = useStyles();
-    const cursosKey = Object.keys(datos.resultado)
+    const cursosKey = Object.keys(datos.DatosAsistencias)
     let sumaCalificacion = 0;
     let promedio = 0;
     let asistenciaTotales = 0;
     let faltasTotales = 0;
     let cursos = [];
     cursosKey.forEach((cursoKey) => {
-        sumaCalificacion += Number(datos.resultado[cursoKey].Calificacion)
-        asistenciaTotales += Number(datos.resultado[cursoKey].Asistencias)
-        faltasTotales += Number(datos.resultado[cursoKey].Inasistencias)
-        datos.resultado[cursoKey].id = cursoKey
-        cursos.push(datos.resultado[cursoKey])
+        sumaCalificacion += Number(datos.DatosAsistencias[cursoKey].Calificacion)
+        asistenciaTotales += Number(datos.DatosAsistencias[cursoKey].Asistencias)
+        faltasTotales += Number(datos.DatosAsistencias[cursoKey].Inasistencias)
+        datos.DatosAsistencias[cursoKey].id = cursoKey
+        cursos.push(datos.DatosAsistencias[cursoKey])
     })
-    promedio = sumaCalificacion / cursosKey.length
+    promedio = parseFloat(sumaCalificacion / cursosKey.length).toFixed(2)
     let clasesTotales = asistenciaTotales + faltasTotales
 
     function getEstado(curso) {

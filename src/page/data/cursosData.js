@@ -113,7 +113,7 @@ export async function fetchDesempAcadPipeline({ authenticatedEthosFetch, pipelin
         } else {
             const json = await JSON.parse(text)
             // eslint-disable-next-line no-console
-            console.log('[Historial] Respuesta del pipeline:', json);
+            // console.log('[Historial] Respuesta del pipeline:', json);
             return json;
         }
     }
@@ -137,7 +137,7 @@ export async function fetchAdeudosPipeline({ authenticatedEthosFetch, pipeline, 
         } else {
             const json = await JSON.parse(text)
             // eslint-disable-next-line no-console
-            console.log('[Historial] Respuesta del pipeline:', json);
+            // console.log('[Historial] Respuesta del pipeline:', json);
             return json;
         }
     }

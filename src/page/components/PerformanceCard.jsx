@@ -40,6 +40,7 @@ const useStyles = makeStyles()(() => ({
     performanceStats: {
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-around',
         gap: '20px',
     },
     mainStat: {
@@ -102,13 +103,15 @@ const useStyles = makeStyles()(() => ({
 const PerformanceCard = ({ datos }) => {
     const { classes } = useStyles();
 
-    const cursosKey = Object.keys(datos.resultado)
+    const cursosKey = Object.keys(datos.DatosAsistencias)
     let sumaCalificacion = 0;
     let promedio = 0;
+    let creditosCursando = 0;
     cursosKey.forEach((cursoKey) => {
-        sumaCalificacion += Number(datos.resultado[cursoKey].Calificacion)
+        sumaCalificacion += Number(datos.DatosAsistencias[cursoKey].Calificacion)
+        creditosCursando += Number(datos.DatosAsistencias[cursoKey].Creditos)
     })
-    promedio = sumaCalificacion / cursosKey.length
+    promedio = parseFloat(sumaCalificacion / cursosKey.length).toFixed(2)
 
 
     return (
@@ -126,16 +129,11 @@ const PerformanceCard = ({ datos }) => {
                 </div>
                 <CircularProgress percentage={84} />
                 <div className={classes.creditsStat}>
-                    <span className={classes.creditsNumber}>38</span>
-                    <span className={classes.creditsSuffix}>de 45</span>
-                    <div className={classes.statLabel}>Créditos</div>
+                    <span className={classes.creditsNumber}>{creditosCursando}</span>
+                    <span className={classes.creditsSuffix}>Créditos</span>
+                    <div className={classes.statLabel}>Cursando</div>
                 </div>
             </div>
-            <div className={classes.improvementNote}>
-                <span className={classes.improvementArrow}>▲</span>
-                <span>Subiste 4 puntos respecto al periodo anterior</span>
-            </div>
-            <div className={classes.exploreLink}>Explorar mi desempeño ›</div>
         </div>
     );
 };
