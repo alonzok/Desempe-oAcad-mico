@@ -3,20 +3,26 @@ import {
     Switch,
     Route
 } from 'react-router-dom';
-import Home from './Home';
-
-// for more information on react router: https://v5.reactrouter.com/web/guides/quick-start
+import PropTypes from 'prop-types';
+import DesempenoAcademico from './DesempenoAcademico';
 
 const RouterPage = (props) => {
     return (
         <Router basename={props.pageInfo.basePath}>
             <Switch>
+                <Route path='/DesempenoAcademico'>
+                    <DesempenoAcademico />
+                </Route>
                 <Route path='/'>
-                    <Home {...props} />
+                    <DesempenoAcademico />
                 </Route>
             </Switch>
         </Router>
     );
+};
+
+RouterPage.propTypes = {
+    pageInfo: PropTypes.object
 };
 
 export default RouterPage;

@@ -41,8 +41,14 @@ export default [
     settings: {
       'import/extensions': ['.js', '.jsx'],
       'import/resolver': {
+        // node resolver for local .js/.jsx files
         node: {
           extensions: ['.js', '.jsx']
+        },
+        // typescript resolver understands the package.json "exports" field
+        // used by modern packages like jspdf / jspdf-autotable
+        typescript: {
+          alwaysTryTypes: true
         }
       },
       react: {

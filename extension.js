@@ -13,17 +13,49 @@ module.exports = {
         },
         configuration: {
             client: [
+                // Pipelines del historial académico: uno por categoría.
+                // Se consultan en paralelo y se combinan en la pestaña
+                // "Historia académica". Basta configurar los que apliquen.
                 {
-                    key: 'DesemAcadPipeline',
-                    label: 'Pipeline para obtener datos de desempeño académico',
+                    key: 'historialPipelineLicenciatura',
+                    label: 'Pipeline kardex — Licenciatura',
                     type: 'text',
-                    required: true
+                    required: false
                 },
                 {
-                    key: 'AdeudosPipeline',
-                    label: 'Pipeline para obtener los adeudos del estudiante',
+                    key: 'historialPipelinePosgrado',
+                    label: 'Pipeline kardex — Posgrado',
                     type: 'text',
-                    required: true
+                    required: false
+                },
+                {
+                    key: 'historialPipelineLenguas',
+                    label: 'Pipeline kardex — Lenguas Extranjeras',
+                    type: 'text',
+                    required: false
+                }
+                ,{
+                    // Pestaña Resumen: calificaciones y asistencia por curso.
+                    key: 'desempenoPipeline',
+                    label: 'Pipeline desempeño académico',
+                    type: 'text',
+                    required: false
+                },
+                {
+                    // Pestaña Resumen: sección de adeudos pendientes.
+                    key: 'adeudosPipeline',
+                    label: 'Pipeline adeudos pendientes',
+                    type: 'text',
+                    required: false
+                },
+                {
+                    // Pestaña Credencial: devuelve el correo institucional a
+                    // partir del Banner ID; de ahí sale el usuario con el que
+                    // se arma la credencial digital.
+                    key: 'emailPipeline',
+                    label: 'Pipeline correo institucional',
+                    type: 'text',
+                    required: false
                 }
             ],
             server: [
