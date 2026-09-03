@@ -12,7 +12,8 @@
  * sigue mostrando.
  */
 
-import { MATRICULA_DEFAULT } from './historialData';
+// import { MATRICULA_DEFAULT } from './historialData';
+const MATRICULA_DEFAULT = 1182457;
 
 // ── Utilidades comunes ─────────────────────────────────────────────────
 function aNumero(v) {

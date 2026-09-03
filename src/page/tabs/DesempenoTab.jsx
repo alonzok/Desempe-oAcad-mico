@@ -192,16 +192,16 @@ const DesempenoTab = ({ cursos = [] }) => {
                 }}
             >
                 <Estadistica
-                    etiqueta="Promedio del periodo"
-                    detalle="Calificación parcial"
-                    valor={promedio == null ? '—' : promedio}
-                    color={COLORES.verdeTexto}
-                />
-                <Estadistica
                     etiqueta="Cursos inscritos"
                     detalle="Periodo actual"
                     valor={delPeriodo.length}
                     color={COLORES.verde}
+                />
+                <Estadistica
+                    etiqueta="Promedio del periodo"
+                    detalle="Calificación parcial"
+                    valor={promedio == null ? '—' : promedio}
+                    color={COLORES.verdeTexto}
                 />
                 <Estadistica
                     etiqueta="Asistencia acumulada"
@@ -220,115 +220,115 @@ const DesempenoTab = ({ cursos = [] }) => {
                     </Typography>
                 </Panel>
             ) : (
-            <Panel sinPadding estilo={{ overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table
-                        style={{
-                            width: '100%',
-                            borderCollapse: 'collapse',
-                            minWidth: 720,
-                            // Con layout fijo los porcentajes mandan; si no, la
-                            // primera columna se queda con todo el sobrante y
-                            // las demás se apelmazan a la derecha.
-                            tableLayout: 'fixed'
-                        }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={{ ...th, width: '34%' }}>Curso</th>
-                                <th style={{ ...th, textAlign: 'center', width: '11%' }}>Créditos</th>
-                                <th style={{ ...th, textAlign: 'center', width: '16%' }}>Calificación</th>
-                                <th style={{ ...th, width: '25%' }}>Asistencia</th>
-                                <th style={{ ...th, textAlign: 'center', width: '14%' }}>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {delPeriodo.map((curso) => {
-                                const pct = porcentaje(curso.asistencias, curso.registros);
-                                const atencion = pct < UMBRAL_ASISTENCIA;
-                                return (
-                                    <tr key={curso.clave}>
-                                        <td style={td}>
-                                            <div style={{ display: 'flex', gap: 12 }}>
-                                                <span
-                                                    style={{
-                                                        width: 4,
-                                                        borderRadius: 4,
-                                                        background: curso.color,
-                                                        flexShrink: 0
-                                                    }}
-                                                />
-                                                <div style={{ minWidth: 0 }}>
-                                                    <div style={{ fontSize: 10, color: COLORES.textoSuave, fontWeight: 600 }}>
-                                                        {curso.clave}
-                                                    </div>
-                                                    <div
+                <Panel sinPadding estilo={{ overflow: 'hidden' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                minWidth: 720,
+                                // Con layout fijo los porcentajes mandan; si no, la
+                                // primera columna se queda con todo el sobrante y
+                                // las demás se apelmazan a la derecha.
+                                tableLayout: 'fixed'
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th style={{ ...th, width: '34%' }}>Curso</th>
+                                    <th style={{ ...th, textAlign: 'center', width: '11%' }}>Créditos</th>
+                                    <th style={{ ...th, textAlign: 'center', width: '16%' }}>Calificación</th>
+                                    <th style={{ ...th, width: '25%' }}>Asistencia</th>
+                                    <th style={{ ...th, textAlign: 'center', width: '14%' }}>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {delPeriodo.map((curso) => {
+                                    const pct = porcentaje(curso.asistencias, curso.registros);
+                                    const atencion = pct < UMBRAL_ASISTENCIA;
+                                    return (
+                                        <tr key={curso.clave}>
+                                            <td style={td}>
+                                                <div style={{ display: 'flex', gap: 12 }}>
+                                                    <span
                                                         style={{
-                                                            fontWeight: 700,
-                                                            color: COLORES.verde,
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: 6
+                                                            width: 4,
+                                                            borderRadius: 4,
+                                                            background: curso.color,
+                                                            flexShrink: 0
                                                         }}
-                                                    >
-                                                        {curso.nombre}
-                                                        {curso.blackboard
-                                                            ? <DistintivoBlackboard id={String(curso.clave)} />
-                                                            : null}
-                                                    </div>
-                                                    {curso.horario ? (
-                                                        <div style={{ fontSize: 11, color: COLORES.textoSuave, marginTop: 2 }}>
-                                                            {curso.horario}
+                                                    />
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div style={{ fontSize: 10, color: COLORES.textoSuave, fontWeight: 600 }}>
+                                                            {curso.clave}
                                                         </div>
-                                                    ) : null}
+                                                        <div
+                                                            style={{
+                                                                fontWeight: 700,
+                                                                color: COLORES.verde,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: 6
+                                                            }}
+                                                        >
+                                                            {curso.nombre}
+                                                            {curso.blackboard
+                                                                ? <DistintivoBlackboard id={String(curso.clave)} />
+                                                                : null}
+                                                        </div>
+                                                        {curso.horario ? (
+                                                            <div style={{ fontSize: 11, color: COLORES.textoSuave, marginTop: 2 }}>
+                                                                {curso.horario}
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
+                                            </td>
 
-                                        <td style={{ ...td, textAlign: 'center' }}>
-                                            <span style={{ fontSize: 16, fontWeight: 700, color: COLORES.verde }}>
-                                                {curso.creditos}
-                                            </span>
-                                        </td>
-
-                                        <td style={{ ...td, textAlign: 'center' }}>
-                                            <span style={{ fontSize: 19, fontWeight: 700, color: COLORES.texto }}>
-                                                {curso.calificacion}
-                                            </span>
-                                            <span style={{ fontSize: 11, color: COLORES.textoSuave }}>/100</span>
-                                        </td>
-
-                                        <td style={td}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                                                <span style={{ fontWeight: 700, color: COLORES.texto }}>
-                                                    {curso.asistencias}/{curso.registros}
+                                            <td style={{ ...td, textAlign: 'center' }}>
+                                                <span style={{ fontSize: 16, fontWeight: 700, color: COLORES.verde }}>
+                                                    {curso.creditos}
                                                 </span>
-                                                <span style={{ color: COLORES.textoSuave }}>{pct}%</span>
-                                            </div>
-                                            <div style={{ marginTop: 5 }}>
-                                                <Barra porcentaje={pct} color={curso.color} />
-                                            </div>
-                                            <div style={{ fontSize: 10, color: COLORES.textoSuave, marginTop: 3 }}>
-                                                asistencias
-                                            </div>
-                                        </td>
+                                            </td>
 
-                                        <td style={{ ...td, textAlign: 'center' }}>
-                                            {atencion ? (
-                                                <Insignia fondo={COLORES.ambarFondo} color={COLORES.ambar}>
-                                                    Atención
-                                                </Insignia>
-                                            ) : (
-                                                <Insignia>En curso</Insignia>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </Panel>
+                                            <td style={{ ...td, textAlign: 'center' }}>
+                                                <span style={{ fontSize: 19, fontWeight: 700, color: COLORES.texto }}>
+                                                    {curso.calificacion}
+                                                </span>
+                                                <span style={{ fontSize: 11, color: COLORES.textoSuave }}>/100</span>
+                                            </td>
+
+                                            <td style={td}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                                                    <span style={{ fontWeight: 700, color: COLORES.texto }}>
+                                                        {curso.asistencias}/{curso.registros}
+                                                    </span>
+                                                    <span style={{ color: COLORES.textoSuave }}>{pct}%</span>
+                                                </div>
+                                                <div style={{ marginTop: 5 }}>
+                                                    <Barra porcentaje={pct} color={curso.color} />
+                                                </div>
+                                                <div style={{ fontSize: 10, color: COLORES.textoSuave, marginTop: 3 }}>
+                                                    asistencias
+                                                </div>
+                                            </td>
+
+                                            <td style={{ ...td, textAlign: 'center' }}>
+                                                {atencion ? (
+                                                    <Insignia fondo={COLORES.ambarFondo} color={COLORES.ambar}>
+                                                        Atención
+                                                    </Insignia>
+                                                ) : (
+                                                    <Insignia>En curso</Insignia>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </Panel>
             )}
 
             <Typography style={{ fontSize: 11, color: COLORES.textoSuave, marginTop: 12 }}>
