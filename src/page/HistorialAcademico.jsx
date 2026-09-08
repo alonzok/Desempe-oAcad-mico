@@ -71,7 +71,7 @@ const HistorialAcademico = () => {
     const { classes } = useStyles();
     const { authenticatedEthosFetch } = useData();
     const { cardConfiguration, cardId } = useCardInfo();
-    const { firstName, roles } = useUserInfo();
+    const { firstName } = useUserInfo();
 
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
@@ -86,8 +86,6 @@ const HistorialAcademico = () => {
 
     useEffect(() => {
         let cancelado = false;
-        const bannerId = roles.findLast(role => role.startsWith("A"))
-        console.log(bannerId)
         fetchHistorialAcademico({
             authenticatedEthosFetch,
             pipelines: {

@@ -10,6 +10,9 @@ const RouterPage = (props) => {
     return (
         <Router basename={props.pageInfo.basePath}>
             <Switch>
+                <Route path='/DesempenoAcademico/:matricula'>
+                    <DesempenoAcademico />
+                </Route>
                 <Route path='/DesempenoAcademico'>
                     <DesempenoAcademico />
                 </Route>

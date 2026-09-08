@@ -1,12 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Typography } from '@ellucian/react-design-system/core';
+import {
+    Typography,
+    Button,
+    Box
+} from '@ellucian/react-design-system/core';
 import { useData, useCardInfo } from '@ellucian/experience-extension-utils';
+import { useParams, useHistory } from 'react-router-dom';
 import ResumenTab from './tabs/ResumenTab';
 import CredencialTab from './tabs/CredencialTab';
 import ServiciosTab from './tabs/ServiciosTab';
 import HistorialAcademico from './HistorialAcademico';
 import { COLORES, ESTUDIANTE, PERIODO_ACTUAL } from '../data/datosDemo';
 import { fetchResumen } from '../data/resumenData';
+import { Home as HomeIcon } from '@ellucian/ds-icons/lib';
+
+// URL del inicio de Experience (cambiar para producción).
+const URL_INICIO = 'https://experience-test.elluciancloud.com/uabcsaastest/';
+// Reglas de validación de la matrícula (igual que la tarjeta).
+const MIN_DIGITOS = 6;
+const MAX_DIGITOS = 10;
 
 const TABS = [
     { id: 'resumen', label: 'Resumen' },
@@ -46,6 +58,87 @@ const Escudo = () => (
     <img src={ESCUDO_UABC} alt="Universidad Autónoma de Baja California" style={{ height: 58, width: 'auto', display: 'block' }} />
 );
 
+// Navega al inicio del tenant.
+// try/catch por si en algún entorno se restringe.
+const irAlInicio = () => {
+    try {
+        window.top.location.href = URL_INICIO;
+    } catch {
+        window.location.href = URL_INICIO;
+    }
+};
+
+// Barra superior derecha: "Tarjeta" vuelve a la búsqueda de matrícula (dentro
+// de la página) e "Inicio" regresa al home del tenant de Experience.
+const BotonesNav = () => {
+    const history = useHistory();
+    return (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
+            <Button color="secondary" size="small" onClick={() => history.push('/HistorialAcademico')}>
+                Tarjeta
+            </Button>
+            <Button color="secondary" size="small" startIcon={<HomeIcon />} onClick={irAlInicio}>
+                Inicio
+            </Button>
+        </div>
+    );
+};
+
+// Pantalla de búsqueda (la "tarjeta" dentro de la página): input de matrícula
+// con validación + botón para ver el historial.
+const BuscarMatricula = () => {
+    const history = useHistory();
+    const [matricula, setMatricula] = useState('');
+    const [tocado, setTocado] = useState(false);
+    const valida = matricula.length >= MIN_DIGITOS && matricula.length <= MAX_DIGITOS;
+    const mostrarError = tocado && matricula.length > 0 && !valida;
+    const onChange = (e) => setMatricula(e.target.value.replace(/\D/g, '').slice(0, MAX_DIGITOS));
+    const buscar = () => {
+        setTocado(true);
+        if (!valida) return;
+        history.push(`/DesempenoAcademico/${matricula}`);
+    };
+    return (
+        <Box sx={{ p: 3 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                <Button color="secondary" size="small" startIcon={<HomeIcon />} onClick={irAlInicio}>
+                    Inicio
+                </Button>
+            </div>
+            <Typography variant="h4" style={{ marginBottom: 8 }}>Desempeño Académico</Typography>
+            <Typography style={{ marginBottom: 16, color: '#6E6E6E' }}>
+                Ingresa la matrícula del estudiante para ver su Desempeño Académico.
+            </Typography>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    value={matricula}
+                    onChange={onChange}
+                    onBlur={() => setTocado(true)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') buscar(); }}
+                    placeholder="Matrícula"
+                    aria-label="Matrícula"
+                    maxLength={MAX_DIGITOS}
+                    style={{
+                        padding: '8px 12px',
+                        border: `1px solid ${mostrarError ? '#C0392B' : '#C9CDD2'}`,
+                        borderRadius: 8,
+                        fontSize: 14,
+                        width: 200
+                    }}
+                />
+                <Button onClick={buscar} disabled={!valida}>Ver Desempeño Académico</Button>
+            </div>
+            {mostrarError ? (
+                <Typography style={{ color: '#C0392B', fontSize: 12, marginTop: 6 }}>
+                    La matrícula debe tener entre {MIN_DIGITOS} y {MAX_DIGITOS} dígitos.
+                </Typography>
+            ) : null}
+        </Box>
+    );
+};
+
 const DesempenoAcademico = () => {
     const [tab, setTab] = useState('resumen');
 
@@ -53,10 +146,19 @@ const DesempenoAcademico = () => {
     // el encabezado, el periodo, el resumen y la credencial los comparten.
     const { authenticatedEthosFetch } = useData();
     const { cardConfiguration, cardId } = useCardInfo();
+    const { matricula: matriculaParam } = useParams();
     const [datos, setDatos] = useState(null);
     const [cargando, setCargando] = useState(true);
 
+    // Pestañas ya visitadas. Una pestaña se monta la PRIMERA vez que se abre
+    // (por eso el pipeline del historial no se llama al entrar a la página) y
+    // a partir de ahí se mantiene montada, solo oculta. Así "Historia
+    // académica" conserva sus datos y no vuelve a consultar el pipeline cada
+    // vez que se regresa a ella.
+    const [visitadas, setVisitadas] = useState({ resumen: true });
+
     useEffect(() => {
+        setDatos(null);
         let cancelado = false;
         setCargando(true);
 
@@ -66,7 +168,8 @@ const DesempenoAcademico = () => {
             pipelines: {
                 desempeno: cardConfiguration?.desempenoPipeline,
                 adeudos: cardConfiguration?.adeudosPipeline
-            }
+            },
+            matricula: matriculaParam
         })
             .then((d) => { if (!cancelado) setDatos(d); })
             .catch(() => { if (!cancelado) setDatos({ desempeno: null, adeudos: null, errores: [] }); })
@@ -74,6 +177,23 @@ const DesempenoAcademico = () => {
 
         return () => { cancelado = true; };
     }, [authenticatedEthosFetch, cardConfiguration, cardId]);
+
+    if (!matriculaParam) {
+        return <BuscarMatricula />;
+    }
+    
+    console.log(datos)
+    if (datos?.desempeno == null && datos?.adeudos == null) {
+        return (
+            <Box sx={{ p: 3 }}>
+                <BotonesNav />
+                <Typography variant="h4" style={{ marginTop: 12 }}>{'Matrícula no encontrada'}</Typography>
+                <Typography>
+                    {`No existe un estudiante con la matrícula ${matriculaParam}. Verifica el número e inténtalo de nuevo.`}
+                </Typography>
+            </Box>
+        );
+    }
 
     const cursos = (datos && datos.desempeno && datos.desempeno.cursos) || [];
     const adeudos = (datos && datos.adeudos) || [];
@@ -103,12 +223,6 @@ const DesempenoAcademico = () => {
         : PERIODO_ACTUAL;
 
 
-    // Pestañas ya visitadas. Una pestaña se monta la PRIMERA vez que se abre
-    // (por eso el pipeline del historial no se llama al entrar a la página) y
-    // a partir de ahí se mantiene montada, solo oculta. Así "Historia
-    // académica" conserva sus datos y no vuelve a consultar el pipeline cada
-    // vez que se regresa a ella.
-    const [visitadas, setVisitadas] = useState({ resumen: true });
 
     const abrirTab = (id) => {
         setTab(id);
@@ -133,6 +247,7 @@ const DesempenoAcademico = () => {
 
     return (
         <div style={{ background: COLORES.fondo, minHeight: '100%', padding: '1.25rem' }}>
+            <BotonesNav />
             {/* ── Encabezado ── */}
             <div
                 style={{
@@ -212,67 +327,67 @@ const DesempenoAcademico = () => {
                     padding: '10px 1.5rem 1.5rem'
                 }}
             >
-            {/* ── Pestañas ── */}
-            <div
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: 16,
-                    flexWrap: 'wrap',
-                    borderBottom: `1px solid ${COLORES.linea}`,
-                    marginBottom: '1.5rem'
-                }}
-            >
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    {TABS.map((t) => {
-                        const activa = t.id === tab;
-                        return (
-                            <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => abrirTab(t.id)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    borderBottom: `3px solid ${activa ? COLORES.oro : 'transparent'}`,
-                                    padding: '10px 14px',
-                                    cursor: 'pointer',
-                                    fontSize: 14,
-                                    fontWeight: activa ? 700 : 500,
-                                    color: activa ? COLORES.verde : COLORES.textoSuave
-                                }}
-                            >
-                                {t.label}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Periodo real del pipeline (antes estaba fijo en 2026-2). */}
-                <span
+                {/* ── Pestañas ── */}
+                <div
                     style={{
-                        background: COLORES.verde,
-                        color: '#FFFFFF',
-                        borderRadius: 999,
-                        padding: '9px 22px',
-                        fontSize: 15,
-                        fontWeight: 700,
-                        letterSpacing: '0.02em',
-                        marginBottom: 9,
-                        boxShadow: '0 1px 3px rgba(15,92,63,0.25)'
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 16,
+                        flexWrap: 'wrap',
+                        borderBottom: `1px solid ${COLORES.linea}`,
+                        marginBottom: '1.5rem'
                     }}
                 >
-                    Periodo {periodoActual || '—'}
-                </span>
-            </div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {TABS.map((t) => {
+                            const activa = t.id === tab;
+                            return (
+                                <button
+                                    key={t.id}
+                                    type="button"
+                                    onClick={() => abrirTab(t.id)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        borderBottom: `3px solid ${activa ? COLORES.oro : 'transparent'}`,
+                                        padding: '10px 14px',
+                                        cursor: 'pointer',
+                                        fontSize: 14,
+                                        fontWeight: activa ? 700 : 500,
+                                        color: activa ? COLORES.verde : COLORES.textoSuave
+                                    }}
+                                >
+                                    {t.label}
+                                </button>
+                            );
+                        })}
+                    </div>
 
-            {/* ── Contenido de la pestaña ── */}
-            {TABS.filter((t) => visitadas[t.id]).map((t) => (
-                <div key={t.id} style={{ display: t.id === tab ? 'block' : 'none' }}>
-                    {contenidoPorTab[t.id]}
+                    {/* Periodo real del pipeline (antes estaba fijo en 2026-2). */}
+                    <span
+                        style={{
+                            background: COLORES.verde,
+                            color: '#FFFFFF',
+                            borderRadius: 999,
+                            padding: '9px 22px',
+                            fontSize: 15,
+                            fontWeight: 700,
+                            letterSpacing: '0.02em',
+                            marginBottom: 9,
+                            boxShadow: '0 1px 3px rgba(15,92,63,0.25)'
+                        }}
+                    >
+                        Periodo {periodoActual || '—'}
+                    </span>
                 </div>
-            ))}
+
+                {/* ── Contenido de la pestaña ── */}
+                {TABS.filter((t) => visitadas[t.id]).map((t) => (
+                    <div key={t.id} style={{ display: t.id === tab ? 'block' : 'none' }}>
+                        {contenidoPorTab[t.id]}
+                    </div>
+                ))}
             </div>
 
             <Typography

@@ -7,10 +7,6 @@ module.exports = {
         title: 'Desempeño Académico',
         displayCardType: 'DesemAcademico Card',
         description: 'Tarjeta para Desempeño Académico',
-        pageRoute: {
-            route: '/',
-            excludeClickSelectors: ['a']
-        },
         configuration: {
             client: [
                 // Pipelines del historial académico: uno por categoría.
