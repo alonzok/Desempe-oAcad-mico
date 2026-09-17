@@ -45,6 +45,13 @@ module.exports = {
                     required: false
                 },
                 {
+                    // Pestaña Resumen: sección de adeudos pendientes.
+                    key: 'horarioPipeline',
+                    label: 'Pipeline para obtener el horario del alumno junto con nombres de los profesores',
+                    type: 'text',
+                    required: false
+                },
+                {
                     // Pestaña Credencial: devuelve el correo institucional a
                     // partir del Banner ID; de ahí sale el usuario con el que
                     // se arma la credencial digital.
