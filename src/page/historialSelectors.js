@@ -106,8 +106,10 @@ export function getMateriasFaltantes(data) {
 }
 
 export function getTrayectoria(data) {
-    return (data?.terminos || []).map((t) => ({
-        termino: t.termino,
-        promedio: t.promedio
-    }));
+    return (data?.terminos || [])
+        .filter((t) => t.promedio !== 0)
+        .map((t) => ({
+            termino: t.termino,
+            promedio: t.promedio
+        }));
 }
