@@ -1,4 +1,3 @@
-/* global URLSearchParams */
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Typography } from '@ellucian/react-design-system/core';
@@ -56,7 +55,7 @@ const CredencialDigital = () => {
         const pipeline = cardConfiguration?.emailPipeline;
 
         if (!bannerId) {
-            
+            // eslint-disable-next-line no-console
             console.error('[Credencial digital] Sin Banner ID en los roles:', roles);
             setError('No se encontró el Banner ID del usuario.');
             setCargando(false);
@@ -104,7 +103,7 @@ const CredencialDigital = () => {
                 setUsuario(nombreUsuario);
             } catch (e) {
                 if (cancelado) return;
-                
+                // eslint-disable-next-line no-console
                 console.error('[Credencial digital]', e);
                 setError('No se pudo obtener la credencial.');
             } finally {

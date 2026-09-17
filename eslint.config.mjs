@@ -31,24 +31,28 @@ export default [
         ecmaFeatures: { jsx: true }
       },
       globals: {
+        // Globals del navegador
         window: 'readonly',
         document: 'readonly',
         navigator: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        fetch: 'readonly',
+        URLSearchParams: 'readonly',
+        // Globals de Node
         process: 'readonly',
-        console: 'readonly'
+        __dirname: 'readonly',
+        __filename: 'readonly'
       }
     },
     settings: {
       'import/extensions': ['.js', '.jsx'],
       'import/resolver': {
-        // node resolver for local .js/.jsx files
         node: {
           extensions: ['.js', '.jsx']
-        },
-        // typescript resolver understands the package.json "exports" field
-        // used by modern packages like jspdf / jspdf-autotable
-        typescript: {
-          alwaysTryTypes: true
         }
       },
       react: {
@@ -60,7 +64,15 @@ export default [
     },
     // merge Jest recommended rules and disable legacy React 19 function component prop rules
     rules: {
-      ...react19LegacyRulesOff
+      ...react19LegacyRulesOff,
+      // no-unused-vars: warn en lugar de error, e ignora lo que empieza con _
+      'no-unused-vars': ['warn', {
+        vars: 'all',
+        args: 'after-used',
+        ignoreRestSiblings: true,
+        argsIgnorePattern: '^_',   // parámetros como _e, _req no generan warning
+        varsIgnorePattern: '^_'    // variables como _unused tampoco
+      }]
     }
   }
 ];

@@ -30,7 +30,7 @@ export const PERIODO_ACTUAL = '2026-2';
 // ── Estudiante ──────────────────────────────────────────────────────
 export const ESTUDIANTE = {
     nombre: 'Mariana García López',
-    saludo: 'Mariana',
+    saludo: 'Estudiante',
     matricula: '01234567',
     programa: 'Lic. en Actividad Física y Deporte',
     // Respaldo: campus y facultad ya vienen del pipeline; esto solo se usa
@@ -48,6 +48,7 @@ export const ESTUDIANTE = {
 
 // Porcentaje de asistencia a partir del cual el curso se marca en "Atención".
 export const UMBRAL_ASISTENCIA = 40;
+export const UMBRAL_CALIFICACION = 60;
 
 // ── Credencial digital ──────────────────────────────────────────────
 export const CREDENCIAL = {

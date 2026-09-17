@@ -1,4 +1,3 @@
-/* global URLSearchParams */
 /**
  * Capa de datos del Historial Académico.
  *

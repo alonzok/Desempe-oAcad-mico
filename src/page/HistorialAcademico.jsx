@@ -18,6 +18,9 @@ import {
 import AnilloProgreso from './components/AnilloProgreso';
 import LoadingOverlay from './components/LoadingOverlay';
 import BarraProgreso from './components/BarraProgreso';
+import { useParams } from 'react-router-dom';
+import TrayectoriaPromedio from './components/TrayectoriaPromedio';
+import { useEsAngosto } from './components/useMedidas';
 import { generarKardexPdf, generarKardexPeriodoPdf, generarKardexLenguasPdf } from './generarKardexPdf';
 import { useData, useCardInfo, useUserInfo } from '@ellucian/experience-extension-utils';
 import LenguasExtranjeras from './LenguasExtranjeras';
@@ -33,6 +36,9 @@ const ESTADO_ESTILO = {
 
 const useStyles = makeStyles()({
     root: { padding: '1rem' },
+    // En teléfono el padding lateral se quita: la página ya tiene el suyo y
+    // aquí solo servía para restarle ancho al contenido.
+    rootAngosto: { padding: '0.25rem 0' },
     tabs: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
     tab: {
         border: '1px solid #E1E4E7',
@@ -44,6 +50,8 @@ const useStyles = makeStyles()({
         font: 'inherit',
         minWidth: 150
     },
+    // Ancho completo y alto de 48 px: blanco cómodo para el dedo.
+    tabAngosto: { flex: '1 1 100%', minWidth: 0, minHeight: 48 },
     tabActivo: { borderColor: ACENTO, boxShadow: `inset 0 -3px 0 ${ACENTO}`, background: '#F3FBF7' },
     sidebarCard: { padding: '1.1rem', textAlign: 'center' },
     sectionCard: { padding: '1rem 1.1rem' },
@@ -67,11 +75,73 @@ const periodoLegible = (periodo) => {
     return `${m[1]}-${ciclo}`;
 };
 
+// ── Materias de un periodo, en lista ────────────────────────────────
+// En teléfono la tabla de cuatro columnas obliga a desplazar de lado para
+// leer la calificación, que es justo el dato que se busca. Apilada, cada
+// materia se lee completa sin mover nada.
+const ListaMaterias = ({ materias = [] }) => (
+    <div>
+        {materias.map((m, idx) => {
+            const estado = ESTADO_ESTILO[m.estado] || ESTADO_ESTILO.en_curso;
+            return (
+                <div
+                    key={`${m.claveMateria}-${idx}`}
+                    style={{ borderTop: '1px solid #F0F0F0', padding: '10px 12px' }}
+                >
+                    <div style={{ fontSize: 13, lineHeight: 1.35 }}>{m.nombreMateria}</div>
+                    <div style={{ fontSize: 11, color: '#9A9A9A', marginTop: 1 }}>{m.claveMateria}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: estado.bg, color: estado.fg }}>
+                            {estado.label}
+                        </span>
+                        <span style={{ fontSize: 12, color: '#6E6E6E' }}>{m.creditos} cr</span>
+                        <span style={{ fontSize: 12, color: '#6E6E6E' }}>
+                            Calif. {m.calificacion != null ? m.calificacion : '—'}
+                        </span>
+                    </div>
+                </div>
+            );
+        })}
+    </div>
+);
+
+// ── Acomodo de la ficha del alumno y el contenido ───────────────────
+// En pantalla ancha la ficha va en la barra lateral. En teléfono esa barra
+// reservaba su ancho aunque no cupiera y empujaba el contenido fuera de la
+// pantalla (era lo que cortaba las tarjetas de créditos y el kardex por la
+// derecha), así que ahí se apila: ficha arriba y contenido debajo.
+const Acomodo = ({ angosto, sidebar, children }) => {
+    if (angosto) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {sidebar}
+                {children}
+            </div>
+        );
+    }
+
+    /*
+        position="sticky": por defecto este componente usa position:fixed, y
+        con la página dentro de un iframe la ficha del alumno se recortaba
+        por abajo (no se alcanzaba el botón del PDF) y se quedaba atorada al
+        subir. Con sticky acompaña el scroll correctamente.
+    */
+    return (
+        <FixedSidebarLayout sidebar={sidebar} position="sticky">
+            {children}
+        </FixedSidebarLayout>
+    );
+};
+
 const HistorialAcademico = () => {
     const { classes } = useStyles();
     const { authenticatedEthosFetch } = useData();
     const { cardConfiguration, cardId } = useCardInfo();
     const { firstName } = useUserInfo();
+    const { matricula: matriculaParam } = useParams();
+    // Acomodo para teléfono: una sola columna, ficha arriba y el detalle de
+    // materias como lista en vez de tabla.
+    const angosto = useEsAngosto();
 
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
@@ -94,6 +164,7 @@ const HistorialAcademico = () => {
                 lenguas: cardConfiguration?.historialPipelineLenguas
             },
             cardId,
+            matricula: matriculaParam
             // bannerId: bannerId
         })
             .then((d) => {
@@ -170,19 +241,13 @@ const HistorialAcademico = () => {
     const toggleTermino = (t) =>
         setTerminosAbiertos((prev) => ({ ...prev, [t]: !prev[t] }));
 
-    // Gráfica de trayectoria
-    const W = 460;
-    const H = 110;
-    const padX = 26;
-    const padTop = 22;
-    const padBottom = 26;
-    const vMin = 50;
-    const vMax = 100;
-    const yDe = (v) => padTop + (1 - (v - vMin) / (vMax - vMin)) * (H - padTop - padBottom);
-    const xDe = (i) =>
-        trayectoria.length > 1 ? padX + (i * (W - 2 * padX)) / (trayectoria.length - 1) : W / 2;
-    const puntos = trayectoria.map((t, i) => `${xDe(i).toFixed(1)},${yDe(t.promedio).toFixed(1)}`).join(' ');
-    const yAprob = yDe(CALIF_MINIMA_APROBATORIA);
+    // Datos de la gráfica de trayectoria. El dibujo lo hace
+    // TrayectoriaPromedio, que se mide contra su contenedor.
+    const trayectoriaGrafica = trayectoria.map((t) => ({
+        clave: t.termino,
+        etiqueta: periodoLegible(t.termino),
+        promedio: t.promedio
+    }));
 
     const sidebar = (
         <Card className={classes.sidebarCard}>
@@ -248,7 +313,7 @@ const HistorialAcademico = () => {
     );
 
     return (
-        <div className={classes.root}>
+        <div className={angosto ? classes.rootAngosto : classes.root}>
             {/* Tabs por programa */}
             <div className={classes.tabs}>
                 {data.programas.map((p, i) => (
@@ -256,7 +321,11 @@ const HistorialAcademico = () => {
                         key={p.id}
                         type="button"
                         onClick={() => cambiarTab(i)}
-                        className={`${classes.tab} ${i === tab ? classes.tabActivo : ''}`}
+                        className={[
+                            classes.tab,
+                            angosto ? classes.tabAngosto : '',
+                            i === tab ? classes.tabActivo : ''
+                        ].filter(Boolean).join(' ')}
                     >
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{p.etiqueta.subtitulo}</div>
                         <div style={{ fontSize: 11, color: '#6E6E6E' }}>{p.etiqueta.titulo}</div>
@@ -268,16 +337,13 @@ const HistorialAcademico = () => {
                 <LenguasExtranjeras programa={programa} />
             ) : (
                 <>
-                    {/*
-                        position="sticky": por defecto este componente usa
-                        position:fixed, y con la página dentro de un iframe la
-                        ficha del alumno se recortaba por abajo (no se
-                        alcanzaba el botón del PDF) y se quedaba atorada al
-                        subir. Con sticky acompaña el scroll correctamente.
-                    */}
-                    <FixedSidebarLayout sidebar={sidebar} position="sticky">
+                    <Acomodo angosto={angosto} sidebar={sidebar}>
                         <div className={classes.mainStack}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                            {/* auto-fit + minmax: con 'repeat(3, 1fr)' cada
+                                columna no podía encoger por debajo de su
+                                contenido y las tarjetas se salían del panel
+                                en pantallas angostas. */}
+                            <div style={{ display: 'grid', gridTemplateColumns: programa.nivel === 'Licenciatura' ? 'repeat(3, minmax(150px, 1fr))' : 'repeat(2, minmax(150px, 1fr))', gap: 12 }}>
                                 {
                                     programa.nivel == 'Licenciatura' &&
                                     <div style={{ background: '#F4F6F8', borderRadius: 8, padding: '0.8rem 0.9rem' }}>
@@ -335,26 +401,11 @@ const HistorialAcademico = () => {
                                 <Typography style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
                                     Trayectoria de promedio por periodo
                                 </Typography>
-                                <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="Promedio por periodo">
-                                    <line x1={padX} y1={yAprob} x2={W - padX} y2={yAprob} stroke="#D0D0D0" strokeWidth="1" strokeDasharray="4 4" />
-                                    <text x={W - padX} y={yAprob - 3} textAnchor="end" style={{ fontSize: 10, fill: '#9A9A9A' }}>
-                                        mínima ({CALIF_MINIMA_APROBATORIA})
-                                    </text>
-                                    {trayectoria.length > 1 ? (
-                                        <polyline points={puntos} fill="none" stroke={ACENTO} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                                    ) : null}
-                                    {trayectoria.map((t, i) => (
-                                        <g key={t.termino}>
-                                            <circle cx={xDe(i)} cy={yDe(t.promedio)} r="3.5" fill={ACENTO} />
-                                            <text x={xDe(i)} y={yDe(t.promedio) - 8} textAnchor="middle" style={{ fontSize: 10, fill: '#2A2A2A', fontWeight: 500 }}>
-                                                {t.promedio}
-                                            </text>
-                                            <text x={xDe(i)} y={H - 8} textAnchor="middle" style={{ fontSize: 10, fill: '#9A9A9A' }}>
-                                                {periodoLegible(t.termino)}
-                                            </text>
-                                        </g>
-                                    ))}
-                                </svg>
+                                <TrayectoriaPromedio
+                                    datos={trayectoriaGrafica}
+                                    minima={CALIF_MINIMA_APROBATORIA}
+                                    angosto={angosto}
+                                />
                             </Card>
 
                             {/* Créditos cumplidos */}
@@ -389,8 +440,18 @@ const HistorialAcademico = () => {
                                                     type="button"
                                                     onClick={() => toggleTermino(grupo.termino)}
                                                     style={{
-                                                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                        padding: '10px 12px', background: '#FAFAFA', border: 'none', cursor: 'pointer', font: 'inherit'
+                                                        width: '100%',
+                                                        display: 'flex',
+                                                        // En angosto los dos textos no caben en una línea:
+                                                        // se apilan y el botón gana alto para el dedo.
+                                                        flexDirection: angosto ? 'column' : 'row',
+                                                        alignItems: angosto ? 'flex-start' : 'center',
+                                                        justifyContent: 'space-between',
+                                                        gap: angosto ? 2 : 0,
+                                                        minHeight: angosto ? 48 : undefined,
+                                                        textAlign: 'left',
+                                                        padding: angosto ? '11px 12px' : '10px 12px',
+                                                        background: '#FAFAFA', border: 'none', cursor: 'pointer', font: 'inherit'
                                                     }}
                                                 >
                                                     <span style={{ fontWeight: 600, fontSize: 13 }}>
@@ -401,7 +462,11 @@ const HistorialAcademico = () => {
                                                     </span>
                                                 </button>
 
-                                                {abierto ? (
+                                                {abierto && angosto ? (
+                                                    <ListaMaterias materias={grupo.materias} />
+                                                ) : null}
+
+                                                {abierto && !angosto ? (
                                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                                                         <thead>
                                                             <tr style={{ color: '#6E6E6E', textAlign: 'left' }}>
@@ -438,7 +503,7 @@ const HistorialAcademico = () => {
                                 </div>
                             </Card>
                         </div>
-                    </FixedSidebarLayout>
+                    </Acomodo>
                 </>
             )}
         </div>
