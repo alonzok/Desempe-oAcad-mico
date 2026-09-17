@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import {
     Typography,
     Button,
-    Box
+    Box,
+    CircularProgress
 } from '@ellucian/react-design-system/core';
 import { useData, useCardInfo } from '@ellucian/experience-extension-utils';
 import { useParams, useHistory } from 'react-router-dom';
@@ -149,6 +150,7 @@ const DesempenoAcademico = () => {
     const { matricula: matriculaParam } = useParams();
     const [datos, setDatos] = useState(null);
     const [cargando, setCargando] = useState(true);
+    console.log(matriculaParam)
 
     // Pestañas ya visitadas. Una pestaña se monta la PRIMERA vez que se abre
     // (por eso el pipeline del historial no se llama al entrar a la página) y
@@ -176,20 +178,20 @@ const DesempenoAcademico = () => {
             .finally(() => { if (!cancelado) setCargando(false); });
 
         return () => { cancelado = true; };
-    }, [authenticatedEthosFetch, cardConfiguration, cardId]);
+    }, [authenticatedEthosFetch, cardConfiguration, cardId, matriculaParam]);
 
     if (!matriculaParam) {
         return <BuscarMatricula />;
     }
-    
+
     console.log(datos)
     if (datos?.desempeno == null && datos?.adeudos == null) {
         return (
             <Box sx={{ p: 3 }}>
                 <BotonesNav />
-                <Typography variant="h4" style={{ marginTop: 12 }}>{'Matrícula no encontrada'}</Typography>
+                <CircularProgress aria-label={'Cargando'} aria-valuetext={'Cargando'} />
                 <Typography>
-                    {`No existe un estudiante con la matrícula ${matriculaParam}. Verifica el número e inténtalo de nuevo.`}
+                    {`Cargando datos...`}
                 </Typography>
             </Box>
         );
@@ -248,158 +250,175 @@ const DesempenoAcademico = () => {
     return (
         <div style={{ background: COLORES.fondo, minHeight: '100%', padding: '1.25rem' }}>
             <BotonesNav />
-            {/* ── Encabezado ── */}
-            <div
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    gap: 16,
-                    flexWrap: 'wrap',
-                    marginBottom: '1.25rem'
-                }}
-            >
-                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                    <Escudo />
-                    <div>
-                        <Typography
-                            style={{
-                                fontSize: 11,
-                                letterSpacing: '0.08em',
-                                textTransform: 'uppercase',
-                                color: COLORES.verde,
-                                fontWeight: 700
-                            }}
-                        >
-                            Universidad Autónoma de Baja California
-                        </Typography>
-                        <Typography style={{ fontSize: 30, fontWeight: 700, color: COLORES.texto, lineHeight: 1.15 }}>
-                            Hola, {estudiante.primerNombre || ESTUDIANTE.saludo}
-                        </Typography>
-                        <Typography style={{ fontSize: 13, color: COLORES.textoSuave }}>
-                            Tu vida universitaria, clara y en un solo lugar.
-                        </Typography>
-                    </div>
-                </div>
-
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        border: `1px solid ${COLORES.linea}`,
-                        borderRadius: 999,
-                        padding: '6px 8px 6px 16px',
-                        background: '#FFFFFF'
-                    }}
-                >
-                    <Typography style={{ fontSize: 13, fontWeight: 600, color: COLORES.texto }}>
-                        {[estudiante.primerNombre, estudiante.apellidos.split(' ')[0]].filter(Boolean).join(' ')}
-                    </Typography>
-                    <span
+            {datos.errores.length > 0 ?
+                <div>
+                    <Typography
                         style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: '50%',
-                            background: COLORES.verdeClaro,
-                            color: COLORES.verde,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 12,
-                            fontWeight: 700
+                            fontSize: 20,
+                            color: COLORES.texti,
+                            textAlign: 'left',
+                            marginTop: '1.5rem'
                         }}
                     >
-                        {iniciales(`${estudiante.primerNombre} ${estudiante.apellidos}`)}
-                    </span>
+                        No se encontró información para la matrícula {matriculaParam}, favor de revisar la matrícula e intente más tarde
+                    </Typography>
                 </div>
-            </div>
-
-            {/* ── Panel blanco: pestañas + contenido (como en el diseño) ── */}
-            <div
-                style={{
-                    background: '#FFFFFF',
-                    border: `1px solid ${COLORES.linea}`,
-                    borderRadius: 18,
-                    // El aire de ARRIBA lo da este padding y el de ABAJO el
-                    // marginBottom del chip: así queda centrado entre el borde
-                    // de la tarjeta y la línea que cierra las pestañas.
-                    padding: '10px 1.5rem 1.5rem'
-                }}
-            >
-                {/* ── Pestañas ── */}
-                <div
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 16,
-                        flexWrap: 'wrap',
-                        borderBottom: `1px solid ${COLORES.linea}`,
-                        marginBottom: '1.5rem'
-                    }}
-                >
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {TABS.map((t) => {
-                            const activa = t.id === tab;
-                            return (
-                                <button
-                                    key={t.id}
-                                    type="button"
-                                    onClick={() => abrirTab(t.id)}
+                :
+                <div>
+                    {/* ── Encabezado ── */}
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: 16,
+                            flexWrap: 'wrap',
+                            marginBottom: '1.25rem'
+                        }}
+                    >
+                        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                            <Escudo />
+                            <div>
+                                <Typography
                                     style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        borderBottom: `3px solid ${activa ? COLORES.oro : 'transparent'}`,
-                                        padding: '10px 14px',
-                                        cursor: 'pointer',
-                                        fontSize: 14,
-                                        fontWeight: activa ? 700 : 500,
-                                        color: activa ? COLORES.verde : COLORES.textoSuave
+                                        fontSize: 11,
+                                        letterSpacing: '0.08em',
+                                        textTransform: 'uppercase',
+                                        color: COLORES.verde,
+                                        fontWeight: 700
                                     }}
                                 >
-                                    {t.label}
-                                </button>
-                            );
-                        })}
+                                    Universidad Autónoma de Baja California
+                                </Typography>
+                                <Typography style={{ fontSize: 30, fontWeight: 700, color: COLORES.texto, lineHeight: 1.15 }}>
+                                    Hola, {estudiante.primerNombre || ESTUDIANTE.saludo}
+                                </Typography>
+                                <Typography style={{ fontSize: 13, color: COLORES.textoSuave }}>
+                                    Tu vida universitaria, clara y en un solo lugar.
+                                </Typography>
+                            </div>
+                        </div>
+
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                border: `1px solid ${COLORES.linea}`,
+                                borderRadius: 999,
+                                padding: '6px 8px 6px 16px',
+                                background: '#FFFFFF'
+                            }}
+                        >
+                            <Typography style={{ fontSize: 13, fontWeight: 600, color: COLORES.texto }}>
+                                {[estudiante.primerNombre, estudiante.apellidos.split(' ')[0]].filter(Boolean).join(' ')}
+                            </Typography>
+                            <span
+                                style={{
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: '50%',
+                                    background: COLORES.verdeClaro,
+                                    color: COLORES.verde,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 12,
+                                    fontWeight: 700
+                                }}
+                            >
+                                {iniciales(`${estudiante.primerNombre} ${estudiante.apellidos}`)}
+                            </span>
+                        </div>
                     </div>
 
-                    {/* Periodo real del pipeline (antes estaba fijo en 2026-2). */}
-                    <span
+                    {/* ── Panel blanco: pestañas + contenido (como en el diseño) ── */}
+                    <div
                         style={{
-                            background: COLORES.verde,
-                            color: '#FFFFFF',
-                            borderRadius: 999,
-                            padding: '9px 22px',
-                            fontSize: 15,
-                            fontWeight: 700,
-                            letterSpacing: '0.02em',
-                            marginBottom: 9,
-                            boxShadow: '0 1px 3px rgba(15,92,63,0.25)'
+                            background: '#FFFFFF',
+                            border: `1px solid ${COLORES.linea}`,
+                            borderRadius: 18,
+                            // El aire de ARRIBA lo da este padding y el de ABAJO el
+                            // marginBottom del chip: así queda centrado entre el borde
+                            // de la tarjeta y la línea que cierra las pestañas.
+                            padding: '10px 1.5rem 1.5rem'
                         }}
                     >
-                        Periodo {periodoActual || '—'}
-                    </span>
-                </div>
+                        {/* ── Pestañas ── */}
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: 16,
+                                flexWrap: 'wrap',
+                                borderBottom: `1px solid ${COLORES.linea}`,
+                                marginBottom: '1.5rem'
+                            }}
+                        >
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {TABS.map((t) => {
+                                    const activa = t.id === tab;
+                                    return (
+                                        <button
+                                            key={t.id}
+                                            type="button"
+                                            onClick={() => abrirTab(t.id)}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                borderBottom: `3px solid ${activa ? COLORES.oro : 'transparent'}`,
+                                                padding: '10px 14px',
+                                                cursor: 'pointer',
+                                                fontSize: 14,
+                                                fontWeight: activa ? 700 : 500,
+                                                color: activa ? COLORES.verde : COLORES.textoSuave
+                                            }}
+                                        >
+                                            {t.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
 
-                {/* ── Contenido de la pestaña ── */}
-                {TABS.filter((t) => visitadas[t.id]).map((t) => (
-                    <div key={t.id} style={{ display: t.id === tab ? 'block' : 'none' }}>
-                        {contenidoPorTab[t.id]}
+                            {/* Periodo real del pipeline (antes estaba fijo en 2026-2). */}
+                            <span
+                                style={{
+                                    background: COLORES.verde,
+                                    color: '#FFFFFF',
+                                    borderRadius: 999,
+                                    padding: '9px 22px',
+                                    fontSize: 15,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.02em',
+                                    marginBottom: 9,
+                                    boxShadow: '0 1px 3px rgba(15,92,63,0.25)'
+                                }}
+                            >
+                                Periodo {periodoActual || '—'}
+                            </span>
+                        </div>
+
+                        {/* ── Contenido de la pestaña ── */}
+                        {TABS.filter((t) => visitadas[t.id]).map((t) => (
+                            <div key={t.id} style={{ display: t.id === tab ? 'block' : 'none' }}>
+                                {contenidoPorTab[t.id]}
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
 
-            <Typography
-                style={{
-                    fontSize: 11,
-                    color: COLORES.textoSuave,
-                    textAlign: 'center',
-                    marginTop: '1.5rem'
-                }}
-            >
-                Información personal protegida.
-            </Typography>
+                    <Typography
+                        style={{
+                            fontSize: 11,
+                            color: COLORES.textoSuave,
+                            textAlign: 'center',
+                            marginTop: '1.5rem'
+                        }}
+                    >
+                        Información personal protegida.
+                    </Typography>
+                </div>
+            }
         </div>
     );
 };
