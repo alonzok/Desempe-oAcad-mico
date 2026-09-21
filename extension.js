@@ -1,8 +1,8 @@
 module.exports = {
-    name: 'DesemAcademico',
-    publisher: 'Akuang',
+    name: 'AcademicPerformance',
+    publisher: 'UABC',
     cards: [{
-        type: 'DesemAcademicoCard',
+        type: 'AcademicPerformanceCard',
         source: './src/cards/DesemAcademicoCard',
         title: 'Desempeño Académico',
         displayCardType: 'DesemAcademico Card',
