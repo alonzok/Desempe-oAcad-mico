@@ -19,7 +19,7 @@ import escudoUabc from './escudo-uabc.png';
 import { useEstilosAnimacion, NAVBAR } from './components/animaciones';
 
 // URL del inicio de Experience (cambiar para producción).
-const URL_INICIO = 'https://experience-test.elluciancloud.com/uabcsaastest/';
+const URL_INICIO = 'https://experience.elluciancloud.com/uabcsaasprod/';
 // Reglas de validación de la matrícula (igual que la tarjeta).
 const MIN_DIGITOS = 6;
 const MAX_DIGITOS = 10;
