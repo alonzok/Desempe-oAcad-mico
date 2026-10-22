@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Component } from 'react';
 import {
     Box,
     Card,
     Button,
     Typography,
-    makeStyles,
     FixedSidebarLayout,
+    makeStyles
 } from '@ellucian/react-design-system/core';
-import { fetchHistorialAcademico } from '../data/historialData';
+import {
+    fetchHistorialAcademico,
+    fetchHistorialAcademicoPosgrado,
+    fetchHistorialAcademicoLenguas,
+    combinarHistoriales
+} from '../data/historialData';
 import {
     getAvanceCarrera,
     getKardexPorTermino,
@@ -16,14 +21,14 @@ import {
     CALIF_MINIMA_APROBATORIA
 } from './historialSelectors';
 import AnilloProgreso from './components/AnilloProgreso';
-import LoadingOverlay from './components/LoadingOverlay';
 import BarraProgreso from './components/BarraProgreso';
 import { useParams } from 'react-router-dom';
 import TrayectoriaPromedio from './components/TrayectoriaPromedio';
 import { useEsAngosto } from './components/useMedidas';
-import { generarKardexPdf, generarKardexPeriodoPdf, generarKardexLenguasPdf } from './generarKardexPdf';
+import { generarKardexEtapasPdf, generarKardexPeriodoPosgradoPdf } from './generarKardexPdf';
 import { useData, useCardInfo, useUserInfo } from '@ellucian/experience-extension-utils';
 import LenguasExtranjeras from './LenguasExtranjeras';
+import LoadingOverlay from './components/LoadingOverlay';
 
 // URL del inicio de Experience (cambiar para producción).
 const ACENTO = '#1D9E75';
@@ -36,8 +41,8 @@ const ESTADO_ESTILO = {
 
 const useStyles = makeStyles()({
     root: { padding: '1rem' },
-    // En teléfono el padding lateral se quita: la página ya tiene el suyo y
-    // aquí solo servía para restarle ancho al contenido.
+    // En teléfono el padding lateral se quita: aquí solo servía para
+    // restarle ancho al contenido.
     rootAngosto: { padding: '0.25rem 0' },
     tabs: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
     tab: {
@@ -75,6 +80,46 @@ const periodoLegible = (periodo) => {
     return `${m[1]}-${ciclo}`;
 };
 
+// "cursados/requeridos" de una etapa o del plan. El dato que no llegue se
+// muestra como "-" ("10/-"), y si faltan los dos, un solo "-".
+// resumenEtapas siempre llega, pero puede venir vacío o sin alguna etapa
+// (EB, ED, ET, PP): antes eso tumbaba la página completa.
+const sinDato = (valor) => valor == null || valor === '';
+const creditosDe = (cursados, requeridos) => {
+    if (sinDato(cursados) && sinDato(requeridos)) return '-';
+    return `${sinDato(cursados) ? '-' : cursados}/${sinDato(requeridos) ? '-' : requeridos}`;
+};
+
+// ── Leyenda de intento ──────────────────────────────────────────────
+// "Intento N" solo desde la segunda vez que se cursa la materia (contando
+// periodos), y "(Ext)" en el renglón del extraordinario. Una materia
+// cursada una sola vez, en ordinario, no lleva nada.
+const LeyendaIntento = ({ materia }) => {
+    const partes = [];
+    if (materia.vezCursada > 1) partes.push(`Intento ${materia.vezCursada}`);
+    if (materia.extraordinario) partes.push('(Ext)');
+    if (!partes.length) return null;
+
+    return (
+        <span
+            style={{
+                display: 'inline-block',
+                marginLeft: 6,
+                fontSize: 10,
+                fontWeight: 600,
+                padding: '1px 6px',
+                borderRadius: 6,
+                background: '#FFF4E0',
+                color: '#9A5B00',
+                whiteSpace: 'nowrap',
+                verticalAlign: 'middle'
+            }}
+        >
+            {partes.join(' ')}
+        </span>
+    );
+};
+
 // ── Materias de un periodo, en lista ────────────────────────────────
 // En teléfono la tabla de cuatro columnas obliga a desplazar de lado para
 // leer la calificación, que es justo el dato que se busca. Apilada, cada
@@ -88,7 +133,10 @@ const ListaMaterias = ({ materias = [] }) => (
                     key={`${m.claveMateria}-${idx}`}
                     style={{ borderTop: '1px solid #F0F0F0', padding: '10px 12px' }}
                 >
-                    <div style={{ fontSize: 13, lineHeight: 1.35 }}>{m.nombreMateria}</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.35 }}>
+                        {m.nombreMateria}
+                        <LeyendaIntento materia={m} />
+                    </div>
                     <div style={{ fontSize: 11, color: '#9A9A9A', marginTop: 1 }}>{m.claveMateria}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: estado.bg, color: estado.fg }}>
@@ -105,11 +153,71 @@ const ListaMaterias = ({ materias = [] }) => (
     </div>
 );
 
+// ── Estatus del alumno ───────────────────────────────────────────────
+// Se muestra el texto tal como lo manda el pipeline. El color solo ayuda a
+// leerlo de un vistazo; un estatus que no se reconoce queda en gris.
+const colorDeEstatus = (estatus) => {
+    const texto = String(estatus || '').toLowerCase();
+    if (texto.includes('baja')) return { bg: '#FBE9E7', fg: '#C0392B' };
+    if (texto.includes('egres') || texto.includes('titulad')) return { bg: '#E7F0FB', fg: '#1F6FB2' };
+    if (texto.includes('activ') || texto.includes('inscrit') || texto.includes('vigente')) return { bg: '#E6F4EC', fg: '#1D7A4E' };
+    return { bg: '#F0F0F0', fg: '#4A4A4A' };
+};
+
+const EstatusAlumno = ({ estatus }) => {
+    if (!estatus) return null;
+    const c = colorDeEstatus(estatus);
+    return (
+        <div style={{ marginBottom: 14 }}>
+            <span
+                style={{
+                    display: 'inline-block',
+                    background: c.bg,
+                    color: c.fg,
+                    borderRadius: 999,
+                    padding: '3px 12px',
+                    fontSize: 13,
+                    fontWeight: 600
+                }}
+            >
+                {estatus}
+            </span>
+        </div>
+    );
+};
+
+// ── Aviso de áreas que no se pudieron consultar ─────────────────────
+// Un pipeline que falla (por ejemplo, un 500 de posgrado) no oculta los
+// programas que sí llegaron: se muestran y aquí se avisa qué área faltó.
+const AvisoErrores = ({ errores, completo = false }) => {
+    if (!errores || !errores.length) return null;
+    const nombres = errores.map((e) => e.nombre).join(', ');
+    return (
+        <div
+            role="alert"
+            style={{
+                background: '#FDECEA',
+                border: '1px solid #F5C6C0',
+                color: '#8A2A1F',
+                borderRadius: 8,
+                padding: '8px 12px',
+                fontSize: 12,
+                margin: completo ? '12px 0 0' : '0 0 14px'
+            }}
+        >
+            {completo
+                ? `Áreas que no respondieron: ${nombres}.`
+                : `No se pudo consultar la información de ${nombres}. Se muestran los datos que sí se obtuvieron; vuelve a intentar más tarde.`}
+        </div>
+    );
+};
+
 // ── Acomodo de la ficha del alumno y el contenido ───────────────────
-// En pantalla ancha la ficha va en la barra lateral. En teléfono esa barra
-// reservaba su ancho aunque no cupiera y empujaba el contenido fuera de la
-// pantalla (era lo que cortaba las tarjetas de créditos y el kardex por la
-// derecha), así que ahí se apila: ficha arriba y contenido debajo.
+// En pantalla ancha la ficha va en la barra lateral, igual que siempre. En
+// teléfono esa barra reservaba su ancho aunque no cupiera y empujaba el
+// contenido fuera de la pantalla (cortaba las tarjetas de créditos y el
+// kardex por la derecha), así que ahí se apila: ficha arriba y contenido
+// debajo.
 const Acomodo = ({ angosto, sidebar, children }) => {
     if (angosto) {
         return (
@@ -119,19 +227,17 @@ const Acomodo = ({ angosto, sidebar, children }) => {
             </div>
         );
     }
-
-    /*
-        position="sticky": por defecto este componente usa position:fixed, y
-        con la página dentro de un iframe la ficha del alumno se recortaba
-        por abajo (no se alcanzaba el botón del PDF) y se quedaba atorada al
-        subir. Con sticky acompaña el scroll correctamente.
-    */
-    return (
-        <FixedSidebarLayout sidebar={sidebar} position="sticky">
-            {children}
-        </FixedSidebarLayout>
-    );
+    // position="sticky": con la ficha fija (el valor por defecto), si era
+    // más alta que la pantalla su parte de abajo (el botón del PDF) quedaba
+    // fuera y no había forma de alcanzarla. Con sticky sube con la página
+    // hasta el borde superior y desde ahí se queda en su lugar.
+    return <FixedSidebarLayout sidebar={sidebar} position="sticky">{children}</FixedSidebarLayout>;
 };
+
+// ── Límite de errores ────────────────────────────────────────────────
+// Si algo falla al dibujar (un dato con forma inesperada), se muestra un
+// aviso en lugar de dejar la página en blanco, y el error queda en la
+// consola para diagnosticarlo.
 
 const HistorialAcademico = () => {
     const { classes } = useStyles();
@@ -155,32 +261,61 @@ const HistorialAcademico = () => {
     };
 
     useEffect(() => {
+        setData(null);
+        setError(null);
         let cancelado = false;
-        fetchHistorialAcademico({
-            authenticatedEthosFetch,
-            pipelines: {
-                licenciatura: cardConfiguration?.historialPipelineLicenciatura,
-                posgrado: cardConfiguration?.historialPipelinePosgrado,
-                lenguas: cardConfiguration?.historialPipelineLenguas
-            },
-            cardId,
-            matricula: matriculaParam
-            // bannerId: bannerId
-        })
-            .then((d) => {
-                if (cancelado) return;
-                setData(d);
-                setTab(0);
-                if (d.programas.length) abrirUltimoTermino(d.programas[0]);
-            })
-            .catch((e) => {
-                if (!cancelado) setError(e?.message || 'No se pudo cargar el historial');
-            });
+        const cargarHistorial = async () => {
+            // Cada pipeline se resuelve por separado: allSettled espera a
+            // los tres y entrega el resultado de cada uno, haya fallado o
+            // no. Antes cada solicitud tenía su propio .catch que marcaba
+            // el error de TODA la página en cuanto una fallaba (un 500 de
+            // posgrado ocultaba licenciatura y lenguas), y luego leía
+            // .programas de un null y el resto de la carga se cortaba.
+            const [licenciatura, posgrado, lenguas] = await Promise.allSettled([
+                fetchHistorialAcademico({
+                    authenticatedEthosFetch,
+                    pipeline: cardConfiguration?.historialPipelineLicenciatura,
+                    cardId,
+                    matricula: matriculaParam
+                }),
+                fetchHistorialAcademicoPosgrado({
+                    authenticatedEthosFetch,
+                    pipeline: cardConfiguration?.historialPipelinePosgrado,
+                    cardId,
+                    matricula: matriculaParam
+                }),
+                fetchHistorialAcademicoLenguas({
+                    authenticatedEthosFetch,
+                    pipeline: cardConfiguration?.historialPipelineLenguas,
+                    cardId,
+                    matricula: matriculaParam
+                })
+            ]);
+            if (cancelado) return;
+
+            const historial = combinarHistoriales({ licenciatura, posgrado, lenguas });
+
+            // Los fallos de cada área se avisan en la página (AvisoErrores)
+            // con su estado HTTP; no se repiten en la consola.
+            setData(historial);
+        };
+
+        cargarHistorial().catch((e) => {
+            // Solo llega aquí un error al combinar los datos, no de los
+            // pipelines (esos ya vienen dentro de allSettled).
+            console.error('[Historial] Error al procesar el historial:', e);
+            if (!cancelado) setError(e?.message || 'No se pudo cargar el historial');
+        });
+
         return () => {
             cancelado = true;
         };
-    }, [authenticatedEthosFetch, cardConfiguration, cardId]);
-
+    }, [
+        authenticatedEthosFetch,
+        cardConfiguration,
+        cardId,
+        matriculaParam
+    ]);
     if (error) {
         return (
             <Box sx={{ p: 3 }}>
@@ -208,6 +343,7 @@ const HistorialAcademico = () => {
 
     const programa = data.programas[Math.min(tab, data.programas.length - 1)];
     const esLenguas = /lenguas/i.test(programa.nivel || '');
+    const nivelMayus = String(programa.nivel || '').toUpperCase();
     const est = programa.estudiante;
     const avance = getAvanceCarrera(programa);
     const resumen = getResumen(programa);
@@ -262,21 +398,17 @@ const HistorialAcademico = () => {
             </div>
             <Typography variant="h4" style={{ margin: 0 }}>{est.nombre || firstName}</Typography>
             <Typography style={{ color: '#6E6E6E', fontSize: 16, marginTop: 2 }}>{est.facultad}</Typography>
-            {/* Se muestra el NOMBRE del programa educativo en lugar de su
-                clave (antes decía, por ejemplo, "LI-10-0112"). */}
-            <Typography style={{ color: '#6E6E6E', fontSize: 15, marginTop: 2 }}>
-                {est.nombrePrograma || est.programa}
+            <Typography style={{ color: '#9A9A9A', fontSize: 16, marginBottom: est.estatus ? 8 : 14 }}>
+                {est.programa}{est.matricula ? ` · Mat. ${est.matricula}` : ''}
             </Typography>
-            <Typography style={{ color: '#9A9A9A', fontSize: 15, marginBottom: 14 }}>
-                Mat. {est.matricula}
-            </Typography>
+            <EstatusAlumno estatus={est.estatus} />
 
             <div style={{ margin: '6px 0 12px', display: 'flex', justifyContent: 'space-around' }}>
                 <div>
                     <AnilloProgreso porcentaje={promedio || 0} valor={promedio ?? '—'} etiqueta="Prom. Arit." />
                 </div>
                 {
-                    programa.nivel == 'Posgrado' &&
+                    nivelMayus != 'LICENCIATURA' &&
                     <div>
                         <AnilloProgreso porcentaje={promedioPonderado || 0} valor={promedioPonderado ?? '—'} etiqueta="Prom. Pond." />
                     </div>
@@ -295,20 +427,24 @@ const HistorialAcademico = () => {
                 </div>
             </div>
 
-            {/* Cada nivel tiene su propio formato de kardex:
-                  Licenciatura -> agrupado por etapas
-                  Posgrado     -> agrupado por periodos
-                  Lenguas      -> formato propio, simplificado */}
-            <Button
-                onClick={() => {
-                    if (esLenguas) generarKardexLenguasPdf(programa);
-                    else if (programa.nivel === 'Posgrado') generarKardexPeriodoPdf(programa);
-                    else generarKardexPdf(programa);
-                }}
-                style={{ marginTop: 16, width: '100%' }}
-            >
-                Descargar kardex (PDF)
-            </Button>
+            {
+                nivelMayus == 'LICENCIATURA' &&
+                <div>
+                    <Button onClick={() => generarKardexEtapasPdf(programa)} style={{ marginTop: 16, width: '100%' }}>
+                        Descargar kardex por Etapas (PDF)
+                    </Button>
+                </div>
+            }
+            {
+                nivelMayus != 'LICENCIATURA' &&
+                <div>
+                    <Button onClick={() => generarKardexPeriodoPosgradoPdf(programa)} style={{ width: '100%' }}>
+                        Descargar kardex por Periodos (PDF)
+                    </Button>
+                </div>
+
+
+            }
         </Card>
     );
 
@@ -333,52 +469,58 @@ const HistorialAcademico = () => {
                 ))}
             </div>
 
+            {/* Áreas que no se pudieron consultar: se avisa sin bloquear
+                los programas que sí cargaron. */}
+            <AvisoErrores errores={data.errores} />
+
             {esLenguas ? (
                 <LenguasExtranjeras programa={programa} />
             ) : (
                 <>
                     <Acomodo angosto={angosto} sidebar={sidebar}>
                         <div className={classes.mainStack}>
-                            {/* auto-fit + minmax: con 'repeat(3, 1fr)' cada
-                                columna no podía encoger por debajo de su
-                                contenido y las tarjetas se salían del panel
-                                en pantallas angostas. */}
-                            <div style={{ display: 'grid', gridTemplateColumns: programa.nivel === 'Licenciatura' ? 'repeat(3, minmax(150px, 1fr))' : 'repeat(2, minmax(150px, 1fr))', gap: 12 }}>
+                            {/* Resumen */}
+                            {/* Máximo 3 columnas, como siempre. Cada campo mide
+                                al menos 150 px (o todo el ancho, si hay menos):
+                                cuando ya no caben 3, auto-fill baja a 2 y luego a
+                                1 columna en lugar de salirse del panel, que es lo
+                                que pasaba con 'repeat(3, minmax(150px, 1fr))'. */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(max(min(150px, 100%), calc((100% - 24px) / 3)), 1fr))', gap: 12 }}>
                                 {
-                                    programa.nivel == 'Licenciatura' &&
+                                    nivelMayus == 'LICENCIATURA' &&
                                     <div style={{ background: '#F4F6F8', borderRadius: 8, padding: '0.8rem 0.9rem' }}>
                                         <div style={{ fontSize: 13, color: '#6E6E6E' }}>Créditos Básicos</div>
-                                        <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{programa.resumenEtapas?.EB.creditosCursados}/{programa.resumenEtapas?.EB.creditosRequeridos}</div>
+                                        <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{creditosDe(programa.resumenEtapas?.EB?.creditosCursados, programa.resumenEtapas?.EB?.creditosRequeridos)}</div>
                                     </div>
                                 }
                                 {
-                                    programa.nivel == 'Licenciatura' &&
+                                    nivelMayus == 'LICENCIATURA' &&
                                     <div style={{ background: '#F4F6F8', borderRadius: 8, padding: '0.8rem 0.9rem' }}>
                                         <div style={{ fontSize: 13, color: '#6E6E6E' }}>Créditos Disciplinarios</div>
-                                        <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{programa.resumenEtapas?.ED.creditosCursados}/{programa.resumenEtapas?.ED.creditosRequeridos}</div>
+                                        <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{creditosDe(programa.resumenEtapas?.ED?.creditosCursados, programa.resumenEtapas?.ED?.creditosRequeridos)}</div>
                                     </div>
                                 }
                                 {
-                                    programa.nivel == 'Licenciatura' &&
+                                    nivelMayus == 'LICENCIATURA' &&
                                     <div style={{ background: '#F4F6F8', borderRadius: 8, padding: '0.8rem 0.9rem' }}>
                                         <div style={{ fontSize: 13, color: '#6E6E6E' }}>Créditos Terminales</div>
-                                        <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{programa.resumenEtapas?.ET.creditosCursados}/{programa.resumenEtapas?.ET.creditosRequeridos}</div>
+                                        <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{creditosDe(programa.resumenEtapas?.ET?.creditosCursados, programa.resumenEtapas?.ET?.creditosRequeridos)}</div>
                                     </div>
                                 }
                                 <div style={{ background: '#F4F6F8', borderRadius: 8, padding: '0.8rem 0.9rem' }}>
                                     <div style={{ fontSize: 13, color: '#6E6E6E' }}>Créditos Obligatorios</div>
-                                    <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{programa.plan.creditosOblitagoriosCursados}/{programa.plan.creditosObligatorios}</div>
+                                    <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{creditosDe(programa.plan?.creditosOblitagoriosCursados, programa.plan?.creditosObligatorios)}</div>
                                 </div>
                                 <div style={{ background: '#F4F6F8', borderRadius: 8, padding: '0.8rem 0.9rem' }}>
                                     <div style={{ fontSize: 13, color: '#6E6E6E' }}>Créditos Optativos</div>
-                                    <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{programa.plan.creditosOptativosCursados}/{programa.plan.creditosOptativos}</div>
+                                    <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{creditosDe(programa.plan?.creditosOptativosCursados, programa.plan?.creditosOptativos)}</div>
                                 </div>
 
                                 {
-                                    programa.nivel == 'Licenciatura' &&
+                                    nivelMayus == 'LICENCIATURA' &&
                                     <div style={{ background: '#F4F6F8', borderRadius: 8, padding: '0.8rem 0.9rem' }}>
                                         <div style={{ fontSize: 13, color: '#6E6E6E' }}>Prácticas Profesionales</div>
-                                        <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{programa.resumenEtapas?.PP.creditosCursados}/{programa.resumenEtapas?.PP.creditosRequeridos}</div>
+                                        <div style={{ fontSize: 24, fontWeight: 600, marginTop: 2 }}>{creditosDe(programa.resumenEtapas?.PP?.creditosCursados, programa.resumenEtapas?.PP?.creditosRequeridos)}</div>
                                     </div>
                                 }
                                 {/* <div style={{ background: '#F4F6F8', borderRadius: 8, padding: '0.8rem 0.9rem' }}>
@@ -483,6 +625,7 @@ const HistorialAcademico = () => {
                                                                     <tr key={`${m.claveMateria}-${idx}`} style={{ borderTop: '1px solid #F0F0F0' }}>
                                                                         <td style={{ padding: '7px 12px' }}>
                                                                             <span style={{ color: '#9A9A9A' }}>{m.claveMateria}</span> {m.nombreMateria}
+                                                                            <LeyendaIntento materia={m} />
                                                                         </td>
                                                                         <td style={{ textAlign: 'center' }}>{m.creditos}</td>
                                                                         <td style={{ textAlign: 'center' }}>{m.calificacion != null ? m.calificacion : '—'}</td>

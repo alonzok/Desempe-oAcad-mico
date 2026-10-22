@@ -11,8 +11,6 @@
  * sigue mostrando.
  */
 
-import { MATRICULA_DEFAULT } from './historialData';
-import { LUGAR_PENDIENTE } from './horarioDemo';
 
 // ── Utilidades comunes ─────────────────────────────────────────────────
 function aNumero(v) {
@@ -361,7 +359,7 @@ export async function fetchResumen({
     authenticatedEthosFetch,
     pipelines = {},
     cardId,
-    matricula = MATRICULA_DEFAULT
+    matricula
 } = {}) {
     if (!authenticatedEthosFetch) {
         throw new Error('Falta el acceso a Ethos (authenticatedEthosFetch).');

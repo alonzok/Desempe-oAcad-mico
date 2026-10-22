@@ -12,7 +12,7 @@ import HorarioTab from './tabs/HorarioTab';
 import CredencialTab from './tabs/CredencialTab';
 import ServiciosTab from './tabs/ServiciosTab';
 import HistorialAcademico from './HistorialAcademico';
-import { COLORES, ESTUDIANTE, PERIODO_ACTUAL } from '../data/datosDemo';
+import { COLORES, SALUDO_PREDETERMINADO } from '../data/datosDemo';
 import { fetchResumen } from '../data/resumenData';
 import { Home as HomeIcon } from '@ellucian/ds-icons/lib';
 import escudoUabc from './escudo-uabc.png';
@@ -49,14 +49,6 @@ const periodoLegible = (cod) => {
     return `${m[1]}-${ciclo}`;
 };
 
-const iniciales = (nombre) =>
-    String(nombre || '')
-        .split(' ')
-        .slice(0, 2)
-        .map((x) => x[0])
-        .join('')
-        .toUpperCase();
-
 // Escudo oficial de la UABC (PNG incrustado en base64: sin archivos externos).
 const Escudo = () => (
     <img src={escudoUabc} alt="Universidad Autónoma de Baja California" style={{ height: 58, width: 'auto', display: 'block' }} />
@@ -78,7 +70,7 @@ const BotonesNav = () => {
     const history = useHistory();
     return (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
-            <Button color="secondary" size="small" onClick={() => history.push('/HistorialAcademico')}>
+            <Button color="secondary" size="small" onClick={() => history.push('/DesempenoAcademico')}>
                 Tarjeta
             </Button>
             <Button color="secondary" size="small" startIcon={<HomeIcon />} onClick={irAlInicio}>
@@ -145,7 +137,11 @@ const BuscarMatricula = () => {
 
 const DesempenoAcademico = () => {
     const [tab, setTab] = useState('resumen');
+    const { pestana } = useParams();
+    const pestanaInicial = TABS.some((t) => t.id === pestana) ? pestana : 'resumen';
+    const [visitadas, setVisitadas] = useState({ [pestanaInicial]: true });
 
+    
     // Los datos del resumen se cargan UNA vez aquí (y no en cada pestaña):
     // el encabezado, el periodo, el resumen y la credencial los comparten.
     const { classes: clasesAnim } = useEstilosAnimacion();
@@ -194,14 +190,7 @@ const DesempenoAcademico = () => {
     const [datos, setDatos] = useState(null);
     const [cargando, setCargando] = useState(true);
 
-    // Pestañas ya visitadas. Una pestaña se monta la PRIMERA vez que se abre
-    // (por eso el pipeline del historial no se llama al entrar a la página) y
-    // a partir de ahí se mantiene montada, solo oculta. Así "Historia
-    // académica" conserva sus datos y no vuelve a consultar el pipeline cada
-    // vez que se regresa a ella.
-    const [visitadas, setVisitadas] = useState({ resumen: true });
-
-    useEffect(() => {
+     useEffect(() => {
         setDatos(null);
         let cancelado = false;
         setCargando(true);
@@ -265,43 +254,43 @@ const DesempenoAcademico = () => {
     const adeudos = (datos && datos.adeudos) || [];
     const delPipeline = (datos && datos.desempeno && datos.desempeno.estudiante) || {};
     const programa = (datos && datos.desempeno && datos.desempeno.programa) || {};
-
     // Secciones cuyo pipeline no respondió. Cada una se pide por separado,
     // así que puede fallar una y funcionar la otra.
     const errores = (datos && datos.errores) || [];
 
-    // Un campo faltante se trata distinto según la causa:
-    //   - el pipeline FALLÓ  -> se muestra el dato de ejemplo, siempre
-    //     acompañado del aviso que explica que no es del alumno.
-    //   - el pipeline RESPONDIÓ pero el campo no vino -> no se inventa nada.
-    //     Antes caía al respaldo de demostración y se veía una carrera falsa
-    //     como si fuera real, sin ningún aviso.
-    const falloDesempeno = errores.some((e) => e.seccion === 'desempeno');
-    const pendiente = cargando ? '' : '—';
-    const dato = (valor, demo) => valor || (falloDesempeno ? demo : pendiente);
-    const cursos = (datos && datos.desempeno && datos.desempeno.cursos) || [];
+    // Un campo que no llega (porque el pipeline falló o porque no vino en
+    // la respuesta) se muestra como "-". Ya no hay datos de ejemplo: si el
+    // pipeline falla, la sección muestra su aviso y los campos quedan en "-".
+    const pendiente = cargando ? '' : '-';
+    const dato = (valor) => valor || pendiente;
 
-    // Nombre y matrícula reales; el resto sigue siendo de demostración.
     const estudiante = {
-        nombre: capitalizar(delPipeline.nombre) || ESTUDIANTE.nombre,
+        nombre: dato(capitalizar(delPipeline.nombre)),
         // El pipeline ya manda los nombres de pila y los apellidos por
         // separado, así que no hay que deducirlos del nombre completo.
         primerNombre: capitalizar(delPipeline.primerNombre),
         apellidos: capitalizar(delPipeline.apellidos),
-        matricula: delPipeline.matricula || ESTUDIANTE.matricula,
-        programa: programa.nombre || ESTUDIANTE.programa,
-        // Campus y facultad ya vienen del pipeline (en el programa).
-        facultad: programa.facultad || ESTUDIANTE.facultad,
-        campus: programa.campus || ESTUDIANTE.campus,
-        // El semestre sigue sin venir en ningún pipeline.
-        semestre: ESTUDIANTE.semestre,
-        estatus: ESTUDIANTE.estatus
+        matricula: dato(delPipeline.matricula),
+        // Los del PRIMER programa. En el Resumen, cambiar de programa
+        // actualiza estos tres; las demás pestañas usan el primero.
+        programa: dato(programa.nombre),
+        facultad: dato(programa.facultad),
+        campus: dato(programa.campus),
+        // El estatus todavía no viene en ningún pipeline.
+        estatus: pendiente
     };
 
     // Periodo vigente: ahora lo manda el pipeline a nivel alumno.
     const periodoActual = delPipeline.periodo
         ? periodoLegible(delPipeline.periodo)
-        : PERIODO_ACTUAL;
+        : pendiente;
+
+
+    // Pestañas ya visitadas. Una pestaña se monta la PRIMERA vez que se abre
+    // (por eso el pipeline del historial no se llama al entrar a la página) y
+    // a partir de ahí se mantiene montada, solo oculta. Así "Historia
+    // académica" conserva sus datos y no vuelve a consultar el pipeline cada
+    // vez que se regresa a ella.
 
     const abrirTab = (id) => {
         setTab(id);
@@ -316,195 +305,158 @@ const DesempenoAcademico = () => {
                 programas={programas}
                 cargando={cargando}
                 errores={errores}
-                matricula={matriculaParam}
             />
         ),
         horario: <HorarioTab estudiante={estudiante} periodoActual={periodoActual} clases={horario} />,
         credencial: <CredencialTab estudiante={estudiante} />,
-        historia: <HistorialAcademico />,
+        historia: <HistorialAcademico matricula={matriculaParam}/>,
         servicios: <ServiciosTab />
     };
 
     return (
-        <div style={{ background: COLORES.fondo, minHeight: '100%', padding: '1.25rem' }}>
-            <BotonesNav />
-                <div>
-                    {/* ── Encabezado ── */}
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            gap: 16,
-                            flexWrap: 'wrap',
-                            marginBottom: '1.25rem'
-                        }}
-                    >
-                        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                            <Escudo />
-                            <div>
-                                <Typography
+        <div style={{ minHeight: '100%', padding: '1.25rem' }}>
+            {/* ── Encabezado ── */}
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 16,
+                    marginBottom: '1.25rem'
+                }}
+            >
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 0 }}>
+                    <Escudo />
+                    <div>
+                        <Typography
+                            style={{
+                                fontSize: 11,
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                color: COLORES.verde,
+                                fontWeight: 700
+                            }}
+                        >
+                            Universidad Autónoma de Baja California
+                        </Typography>
+                        <Typography style={{ fontSize: 30, fontWeight: 700, color: COLORES.texto, lineHeight: 1.15 }}>
+                            Hola, {estudiante.primerNombre || SALUDO_PREDETERMINADO}
+                        </Typography>
+                        <Typography style={{ fontSize: 13, color: COLORES.textoSuave }}>
+                            Tu vida universitaria, clara y en un solo lugar.
+                        </Typography>
+                    </div>
+                </div>
+                <BotonesNav />
+            </div>
+            {/* ── Panel blanco: pestañas + contenido (como en el diseño) ── */}
+            <div
+                style={{
+                    background: '#FFFFFF',
+                    border: `1px solid ${COLORES.linea}`,
+                    borderRadius: 18,
+                    // El aire de ARRIBA lo da este padding y el de ABAJO el
+                    // marginBottom del chip: así queda centrado entre el borde
+                    // de la tarjeta y la línea que cierra las pestañas.
+                    padding: '10px 1.5rem 1.5rem'
+                }}
+            >
+                {/* ── Pestañas ── */}
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 16,
+                        flexWrap: 'wrap',
+                        borderBottom: `1px solid ${COLORES.linea}`,
+                        marginBottom: '1.5rem'
+                    }}
+                >
+                    <div ref={barraTabs} style={{ display: 'flex', gap: 4, flexWrap: 'wrap', position: 'relative' }}>
+                        {TABS.map((t) => {
+                            const activa = t.id === tab;
+                            return (
+                                <button
+                                    key={t.id}
+                                    ref={(nodo) => { refsTab.current[t.id] = nodo; }}
+                                    type="button"
+                                    onClick={() => abrirTab(t.id)}
+                                    className={[
+                                        clasesAnim.opcionNavbar,
+                                        activa ? '' : clasesAnim.opcionNavbarInactiva
+                                    ].filter(Boolean).join(' ')}
                                     style={{
-                                        fontSize: 11,
-                                        letterSpacing: '0.08em',
-                                        textTransform: 'uppercase',
-                                        color: COLORES.verde,
-                                        fontWeight: 700
+                                        // Color del realce que aparece detrás
+                                        // del texto al pasar el mouse.
+                                        '--da-realce': COLORES.verdeClaro,
+                                        background: 'none',
+                                        border: 'none',
+                                        // El borde se queda transparente en todas: el
+                                        // oro lo pinta el subrayado que viaja. Sin él
+                                        // los botones perderían 3 px de alto.
+                                        borderBottom: '3px solid transparent',
+                                        padding: '10px 14px',
+                                        cursor: 'pointer',
+                                        fontSize: 14,
+                                        fontWeight: activa ? 700 : 500,
+                                        color: activa ? COLORES.verde : COLORES.textoSuave
                                     }}
                                 >
-                                    Universidad Autónoma de Baja California
-                                </Typography>
-                                <Typography style={{ fontSize: 30, fontWeight: 700, color: COLORES.texto, lineHeight: 1.15 }}>
-                                    Hola, {estudiante.primerNombre || ESTUDIANTE.saludo}
-                                </Typography>
-                                <Typography style={{ fontSize: 13, color: COLORES.textoSuave }}>
-                                    Tu vida universitaria, clara y en un solo lugar.
-                                </Typography>
-                            </div>
-                        </div>
+                                    {t.label}
+                                </button>
+                            );
+                        })}
 
-                        {/* Nombre y iniciales del alumno, a la derecha del saludo. */}
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
-                                border: `1px solid ${COLORES.linea}`,
-                                borderRadius: 999,
-                                padding: '6px 8px 6px 16px',
-                                background: '#FFFFFF'
-                            }}
-                        >
-                            <Typography style={{ fontSize: 13, fontWeight: 600, color: COLORES.texto }}>
-                                {[estudiante.primerNombre, estudiante.apellidos.split(' ')[0]].filter(Boolean).join(' ')}
-                            </Typography>
+                        {subrayado ? (
                             <span
+                                aria-hidden="true"
+                                className={clasesAnim.subrayadoNavbar}
                                 style={{
-                                    width: 30,
-                                    height: 30,
-                                    borderRadius: '50%',
-                                    background: COLORES.verdeClaro,
-                                    color: COLORES.verde,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 12,
-                                    fontWeight: 700
+                                    background: COLORES.oro,
+                                    width: subrayado.ancho,
+                                    transform: `translate(${subrayado.x}px, ${subrayado.y}px)`
                                 }}
-                            >
-                                {iniciales(`${estudiante.primerNombre} ${estudiante.apellidos}`)}
-                            </span>
-                        </div>
-                    </div>
-                    {/* ── Panel blanco: pestañas + contenido (como en el diseño) ── */}
-                    <div
-                        style={{
-                            background: '#FFFFFF',
-                            border: `1px solid ${COLORES.linea}`,
-                            borderRadius: 18,
-                            // El aire de ARRIBA lo da este padding y el de ABAJO el
-                            // marginBottom del chip: así queda centrado entre el borde
-                            // de la tarjeta y la línea que cierra las pestañas.
-                            padding: '10px 1.5rem 1.5rem'
-                        }}
-                    >
-                        {/* ── Pestañas ── */}
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                gap: 16,
-                                flexWrap: 'wrap',
-                                borderBottom: `1px solid ${COLORES.linea}`,
-                                marginBottom: '1.5rem'
-                            }}
-                        >
-                            <div ref={barraTabs} style={{ display: 'flex', gap: 4, flexWrap: 'wrap', position: 'relative' }}>
-                                {TABS.map((t) => {
-                                    const activa = t.id === tab;
-                                    return (
-                                        <button
-                                            key={t.id}
-                                            ref={(nodo) => { refsTab.current[t.id] = nodo; }}
-                                            type="button"
-                                            onClick={() => abrirTab(t.id)}
-                                            className={[
-                                                clasesAnim.opcionNavbar,
-                                                activa ? '' : clasesAnim.opcionNavbarInactiva
-                                            ].filter(Boolean).join(' ')}
-                                            style={{
-                                                // Color del realce que aparece detrás
-                                                // del texto al pasar el mouse.
-                                                '--da-realce': COLORES.verdeClaro,
-                                                background: 'none',
-                                                border: 'none',
-                                                // El borde se queda transparente en todas: el
-                                                // oro lo pinta el subrayado que viaja. Sin él
-                                                // los botones perderían 3 px de alto.
-                                                borderBottom: '3px solid transparent',
-                                                padding: '10px 14px',
-                                                cursor: 'pointer',
-                                                fontSize: 14,
-                                                fontWeight: activa ? 700 : 500,
-                                                color: activa ? COLORES.verde : COLORES.textoSuave
-                                            }}
-                                        >
-                                            {t.label}
-                                        </button>
-                                    );
-                                })}
-
-                                {subrayado ? (
-                                    <span
-                                        aria-hidden="true"
-                                        className={clasesAnim.subrayadoNavbar}
-                                        style={{
-                                            background: COLORES.oro,
-                                            width: subrayado.ancho,
-                                            transform: `translate(${subrayado.x}px, ${subrayado.y}px)`
-                                        }}
-                                    />
-                                ) : null}
-                            </div>
-
-                            {/* Periodo real del pipeline (antes estaba fijo en 2026-2). */}
-                            <span
-                                style={{
-                                    background: COLORES.verde,
-                                    color: '#FFFFFF',
-                                    borderRadius: 999,
-                                    padding: '9px 22px',
-                                    fontSize: 15,
-                                    fontWeight: 700,
-                                    letterSpacing: '0.02em',
-                                    marginBottom: 9,
-                                    boxShadow: '0 1px 3px rgba(15,92,63,0.25)'
-                                }}
-                            >
-                                Periodo {periodoActual || '—'}
-                            </span>
-                        </div>
-
-                        {/* ── Contenido de la pestaña ── */}
-                        {TABS.filter((t) => visitadas[t.id]).map((t) => (
-                            <div key={t.id} style={{ display: t.id === tab ? 'block' : 'none' }}>
-                                {contenidoPorTab[t.id]}
-                            </div>
-                        ))}
+                            />
+                        ) : null}
                     </div>
 
-                    <Typography
+                    {/* Periodo real del pipeline (antes estaba fijo en 2026-2). */}
+                    <span
                         style={{
-                            fontSize: 11,
-                            color: COLORES.textoSuave,
-                            textAlign: 'center',
-                            marginTop: '1.5rem'
+                            background: COLORES.verde,
+                            color: '#FFFFFF',
+                            borderRadius: 999,
+                            padding: '9px 22px',
+                            fontSize: 15,
+                            fontWeight: 700,
+                            letterSpacing: '0.02em',
+                            marginBottom: 9,
+                            boxShadow: '0 1px 3px rgba(15,92,63,0.25)'
                         }}
                     >
-                        Información personal protegida.
-                    </Typography>
+                        Periodo {periodoActual || '—'}
+                    </span>
                 </div>
+
+                {/* ── Contenido de la pestaña ── */}
+                {TABS.filter((t) => visitadas[t.id]).map((t) => (
+                    <div key={t.id} style={{ display: t.id === tab ? 'block' : 'none' }}>
+                        {contenidoPorTab[t.id]}
+                    </div>
+                ))}
+            </div>
+
+            <Typography
+                style={{
+                    fontSize: 11,
+                    color: COLORES.textoSuave,
+                    textAlign: 'center',
+                    marginTop: '1.5rem'
+                }}
+            >
+                Información personal protegida.
+            </Typography>
         </div>
     );
 };

@@ -25,6 +25,9 @@ export const COLORES = {
     fondo: '#FAF8F3'
 };
 
+// Saludo del encabezado cuando el pipeline no trae el nombre del alumno.
+export const SALUDO_PREDETERMINADO = 'Estudiante';
+
 export const PERIODO_ACTUAL = '2026-2';
 
 // ── Estudiante ──────────────────────────────────────────────────────
